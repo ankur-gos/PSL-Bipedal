@@ -120,18 +120,18 @@ public class Bipedal{
 
         @Override
         public int getArity(){
-            return 4
+            return 4;
         }
 
         @Override
         public ArgumentType[] getArgumentTypes(){
-            return [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double]
+            return [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double];
         }
 
         @Override
         public double getValue(ReadOnlyDatabase db, GroundTerm... args){
-            mdist = (args[0].toDouble() - args[2].toDouble()).abs() + (args[1].toDouble() - args[3].toDouble()).abs()
-            return mdist < 100 ? 1.0 : 0.0
+            mdist = (args[0].toDouble() - args[2].toDouble()).abs() + (args[1].toDouble() - args[3].toDouble()).abs();
+            return mdist < 100 ? 1.0 : 0.0;
         }
     }
 
@@ -139,19 +139,37 @@ public class Bipedal{
 
         @Override
         public int getArity(){
-            return 4
+            return 4;
         }
 
         @Override
         public ArgumentType[] getArgumentTypes(){
-            return [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double]
+            return [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double];
         }
 
         @Override
         public double getValue(ReadOnlyDatabase db, GroundTerm... args){
-            return args[0].toDouble() == args[2].toDouble() && args[1].toDouble() == args[3].toDouble()
+            return args[0].toDouble() == args[2].toDouble() && args[1].toDouble() == args[3].toDouble();
         }
     }
-
     
+
+    private void loadData(Partition obsPartition, Partition targetsPartition, Partition truthPartition) {
+		log.info("Loading data into database");
+
+        Inserter inserter = ds.getInserter(Segment, obsPartition);
+		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "knows_obs.txt").toString());
+
+		Inserter inserter = ds.getInserter(Knows, obsPartition);
+		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "knows_obs.txt").toString());
+
+		inserter = ds.getInserter(Lives, obsPartition);
+		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "lives_obs.txt").toString());
+
+		inserter = ds.getInserter(Lives, targetsPartition);
+		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "lives_targets.txt").toString());
+
+		inserter = ds.getInserter(Lives, truthPartition);
+		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "lives_truth.txt").toString());
+	}
 }
