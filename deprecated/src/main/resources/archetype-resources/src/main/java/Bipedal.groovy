@@ -62,6 +62,7 @@ m.add predicate: "Anchor", types: [ArgumentType.Double, ArgumentType.Double]
 m.add function: "EqualLocations", implementation: new LocationComparison()
 m.add function: "Near", implementation: new ManhattanNear()
 
+// TODO: Add weights
 // Rules
 m.add rule: (Segment(S) && StartLocation(S, X, Y) && StartTime(S, T)) >> AnchorTime(X, Y, T)
 m.add rule: (Segment(S) && EndLocation(S, X, Y) && EndTime(S, T)) >> AnchorTime(X, Y, T)
