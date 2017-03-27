@@ -98,4 +98,6 @@ public class Bipedal{
         model.add predicate: "AnchorMode", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.String]
         model.add predicate: "Anchor", types: [ArgumentType.Double, ArgumentType.Double]
     }
+
+    
 }
