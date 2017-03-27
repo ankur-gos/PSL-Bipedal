@@ -105,6 +105,17 @@ public class Bipedal{
         model.add function: "Near", implementation: new ManhattanNear();
     }
 
+    private void addRules(){
+        model.add rule: (Segment(S) && StartLocation(S, X, Y) && StartTime(S, T)) >> AnchorTime(X, Y, T), weight: 1;
+        model.add rule: (Segment(S) && EndLocation(S, X, Y) && EndTime(S, T)) >> AnchorTime(X, Y, T), weight: 1;
+        model.add rule: (Segment(S) && StartLocation(S, X, Y) && Mode(S, M)) >> AnchorMode(X, Y, M), weight: 1;
+        model.add rule: (Segment(S) && EndLocation(S, X, Y) && Mode(S, M)) >> AnchorMode(X, Y, M), weight: 1;
+        model.add rule: (AnchorMode(X, Y, M)) >> Anchor(X, Y), weight: 1;
+        model.add rule: (AnchorTime(X, Y, T)) >> Anchor(X, Y), weight: 1;
+        model.add rule: (AnchorTime(X1, Y1, T) && AnchorTime(X2, Y2, T) && ~EqualLocations(X1, Y1, X2, Y2)) >> ~Anchor(X2, Y2), weight: 1;
+        model.add rule: (Anchor(X1, Y1) && Near(X1, Y1, X2, Y2) && ~EqualLocations(X1, Y1, X2, Y2)) >> ~Anchor(X2, Y2), weight: 1;
+    }
+
     class ManhattanNear implements ExternalFunction {
 
         @Override
@@ -141,4 +152,6 @@ public class Bipedal{
             return args[0].toDouble() == args[2].toDouble() && args[1].toDouble() == args[3].toDouble()
         }
     }
+
+    
 }
