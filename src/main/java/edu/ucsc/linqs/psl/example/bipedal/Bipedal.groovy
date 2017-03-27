@@ -85,4 +85,17 @@ public class Bipedal{
 		ds = new RDBMSDataStore(new H2DatabaseDriver(Type.Disk, Paths.get(config.dbPath, 'easycc').toString(), true), cb);
 		model = new PSLModel(this, ds);
 	}
+
+    // Predicates
+    private void addPredicates(){
+        model.add predicate: "Segment", types: [ArgumentType.UniqueID]
+        model.add predicate: "StartLocation", types: [ArgumentType.UniqueID, ArgumentType.Double, ArgumentType.Double]
+        model.add predicate: "EndLocation", types: [ArgumentType.UniqueID, ArgumentType.Double, ArgumentType.Double]
+        model.add predicate: "StartTime", types: [ArgumentType.UniqueID, ArgumentType.Date]
+        model.add predicate: "EndTime", types: [ArgumentType.UniqueID, ArgumentType.Date]
+        model.add predicate: "Mode", types: [ArgumentType.UniqueID, ArgumentType.String]
+        model.add predicate: "AnchorTime", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.Date]
+        model.add predicate: "AnchorMode", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.String]
+        model.add predicate: "Anchor", types: [ArgumentType.Double, ArgumentType.Double]
+    }
 }
