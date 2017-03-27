@@ -89,15 +89,56 @@ public class Bipedal{
     // Predicates
     private void addPredicates(){
         model.add predicate: "Segment", types: [ArgumentType.UniqueID]
-        model.add predicate: "StartLocation", types: [ArgumentType.UniqueID, ArgumentType.Double, ArgumentType.Double]
-        model.add predicate: "EndLocation", types: [ArgumentType.UniqueID, ArgumentType.Double, ArgumentType.Double]
-        model.add predicate: "StartTime", types: [ArgumentType.UniqueID, ArgumentType.Date]
-        model.add predicate: "EndTime", types: [ArgumentType.UniqueID, ArgumentType.Date]
-        model.add predicate: "Mode", types: [ArgumentType.UniqueID, ArgumentType.String]
-        model.add predicate: "AnchorTime", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.Date]
-        model.add predicate: "AnchorMode", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.String]
-        model.add predicate: "Anchor", types: [ArgumentType.Double, ArgumentType.Double]
+        model.add predicate: "StartLocation", types: [ArgumentType.UniqueID, ArgumentType.Double, ArgumentType.Double];
+        model.add predicate: "EndLocation", types: [ArgumentType.UniqueID, ArgumentType.Double, ArgumentType.Double];
+        model.add predicate: "StartTime", types: [ArgumentType.UniqueID, ArgumentType.Date];
+        model.add predicate: "EndTime", types: [ArgumentType.UniqueID, ArgumentType.Date];
+        model.add predicate: "Mode", types: [ArgumentType.UniqueID, ArgumentType.String];
+        model.add predicate: "AnchorTime", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.Date];
+        model.add predicate: "AnchorMode", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.String];
+        model.add predicate: "Anchor", types: [ArgumentType.Double, ArgumentType.Double];
     }
 
-    
+    // Functions
+    private void addFunctions(){
+        model.add function: "EqualLocations", implementation: new LocationComparison();
+        model.add function: "Near", implementation: new ManhattanNear();
+    }
+
+    class ManhattanNear implements ExternalFunction {
+
+        @Override
+        public int getArity(){
+            return 4
+        }
+
+        @Override
+        public ArgumentType[] getArgumentTypes(){
+            return [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double]
+        }
+
+        @Override
+        public double getValue(ReadOnlyDatabase db, GroundTerm... args){
+            mdist = (args[0].toDouble() - args[2].toDouble()).abs() + (args[1].toDouble() - args[3].toDouble()).abs()
+            return mdist < 100 ? 1.0 : 0.0
+        }
+    }
+
+    class LocationComparison implements ExternalFunction {
+
+        @Override
+        public int getArity(){
+            return 4
+        }
+
+        @Override
+        public ArgumentType[] getArgumentTypes(){
+            return [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double]
+        }
+
+        @Override
+        public double getValue(ReadOnlyDatabase db, GroundTerm... args){
+            return args[0].toDouble() == args[2].toDouble() && args[1].toDouble() == args[3].toDouble()
+        }
+    }
 }
