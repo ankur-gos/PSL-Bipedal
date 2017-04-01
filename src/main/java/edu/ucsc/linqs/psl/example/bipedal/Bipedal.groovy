@@ -129,8 +129,8 @@ public class Bipedal{
 
         @Override
         public double getValue(ReadOnlyDatabase db, GroundTerm... args){
-            mdist = (args[0].toDouble() - args[2].toDouble()).abs() + (args[1].toDouble() - args[3].toDouble()).abs();
-            return mdist < 100 ? 1.0 : 0.0;
+            double mdist = (args[0].getValue() - args[2].getValue()).abs() + (args[1].getValue() - args[3].getValue()).abs();
+            return mdist < 100.0 ? 1.0 : 0.0;
         }
     }
 
@@ -148,7 +148,7 @@ public class Bipedal{
 
         @Override
         public double getValue(ReadOnlyDatabase db, GroundTerm... args){
-            return args[0].toDouble() == args[2].toDouble() && args[1].toDouble() == args[3].toDouble();
+            return args[0].getValue() == args[2].getValue() && args[1].getValue() == args[3].getValue() ? 1.0 : 0.0;
         }
     }
     
@@ -165,11 +165,11 @@ public class Bipedal{
         inserter = ds.getInserter(EndLocation, obsPartition);
 		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "end_location_obs.txt").toString());
 
-        inserter = ds.getInserter(StartTime, obsPartition);
-		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "start_time_obs.txt").toString());
+        // inserter = ds.getInserter(StartTime, obsPartition);
+		// InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "start_time_obs.txt").toString());
 
-        inserter = ds.getInserter(EndTime, obsPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "end_time_obs.txt").toString());
+        // inserter = ds.getInserter(EndTime, obsPartition);
+        // InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "end_time_obs.txt").toString());
 
         inserter = ds.getInserter(Mode, obsPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "mode_obs.txt").toString());
@@ -186,7 +186,7 @@ public class Bipedal{
 		log.info("Starting inference");
 
 		Date infStart = new Date();
-		HashSet closed = new HashSet<StandardPredicate>([Knows]);
+		HashSet closed = new HashSet<StandardPredicate>([AnchorMode]);
 		Database inferDB = ds.getDatabase(targetsPartition, closed, obsPartition);
 		MPEInference mpe = new MPEInference(model, inferDB, config.cb);
 		FullInferenceResult result = mpe.mpeInference();
@@ -206,11 +206,11 @@ public class Bipedal{
 
 		// Temporarily redirect stdout.
 		PrintStream stdout = System.out;
-		PrintStream ps = new PrintStream(new File(Paths.get(config.outputPath, "lives_infer.txt").toString()));
+		PrintStream ps = new PrintStream(new File(Paths.get(config.outputPath, "anchor_infer.txt").toString()));
 		System.setOut(ps);
 
 		AtomPrintStream aps = new DefaultAtomPrintStream();
-		Set atomSet = Queries.getAllAtoms(resultsDB,Lives);
+		Set atomSet = Queries.getAllAtoms(resultsDB,Anchor);
 		for (Atom a : atomSet) {
 			aps.printAtom(a);
 		}
