@@ -1,3 +1,3 @@
-0   Bike
-1   Drive
-2   Walk
+0	Bike
+1	Drive
+2	Walk
