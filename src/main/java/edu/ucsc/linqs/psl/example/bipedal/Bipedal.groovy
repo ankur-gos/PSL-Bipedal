@@ -158,18 +158,27 @@ public class Bipedal{
 		log.info("Loading data into database");
 
         Inserter inserter = ds.getInserter(Segment, obsPartition);
-		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "knows_obs.txt").toString());
+		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "segment_obs.txt").toString());
 
-		Inserter inserter = ds.getInserter(Knows, obsPartition);
-		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "knows_obs.txt").toString());
+		inserter = ds.getInserter(StartLocation, obsPartition);
+		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "start_location_obs.txt").toString());
 
-		inserter = ds.getInserter(Lives, obsPartition);
-		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "lives_obs.txt").toString());
+        inserter = ds.getInserter(EndLocation, obsPartition);
+		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "end_location_obs.txt").toString());
 
-		inserter = ds.getInserter(Lives, targetsPartition);
-		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "lives_targets.txt").toString());
+        inserter = ds.getInserter(StartTime, obsPartition);
+		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "start_time_obs.txt").toString());
 
-		inserter = ds.getInserter(Lives, truthPartition);
-		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "lives_truth.txt").toString());
+        inserter = ds.getInserter(EndTime, obsPartition);
+        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "end_time_obs.txt").toString());
+
+        insert = ds.getInserter(Mode, obsPartition);
+        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "mode_obs.txt").toString());
+
+        insert = ds.getInserter(Anchor, targetsPartition);
+        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "anchor_targets.txt").toString());
+
+        insert = ds.getInserter(Anchor, truthPartition);
+        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, 'anchor_truth.txt').toString());
 	}
 }
