@@ -1,10 +1,4 @@
-/*
- * Bipedal.groovy
- * Bipedal main file
- * Ankur Goswami, agoswam3@ucsc.edu
- */
-
- package edu.ucsc.linqs.psl.example.bipedal;
+package edu.ucsc.linqs.psl.example.bipedal;
 
 import edu.umd.cs.psl.application.inference.MPEInference;
 import edu.umd.cs.psl.config.ConfigBundle;
@@ -30,6 +24,8 @@ import edu.umd.cs.psl.model.atom.Atom;
 import edu.umd.cs.psl.model.predicate.StandardPredicate;
 import edu.umd.cs.psl.ui.loading.InserterUtils;
 import edu.umd.cs.psl.util.database.Queries;
+import edu.umd.cs.psl.model.function.ExternalFunction;
+import edu.umd.cs.psl.model.argument.GroundTerm;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,14 +102,17 @@ public class Bipedal{
     }
 
     private void defineRules(){
-        model.add rule: (Segment(S) && StartLocation(S, X, Y) && StartTime(S, T)) >> AnchorTime(X, Y, T), weight: 1;
-        model.add rule: (Segment(S) && EndLocation(S, X, Y) && EndTime(S, T)) >> AnchorTime(X, Y, T), weight: 1;
-        model.add rule: (Segment(S) && StartLocation(S, X, Y) && Mode(S, M)) >> AnchorMode(X, Y, M), weight: 1;
-        model.add rule: (Segment(S) && EndLocation(S, X, Y) && Mode(S, M)) >> AnchorMode(X, Y, M), weight: 1;
+        log.info("Defining model rules");
+        model.add(rule: (Segment(S) & StartLocation(S, X, Y) & StartTime(S, T)) >> AnchorTime(X, Y, T),
+                  squared: config.sqPotentials,
+                  weight: 1);
+        model.add rule: (Segment(S) & EndLocation(S, X, Y) & EndTime(S, T)) >> AnchorTime(X, Y, T), weight: 1;
+        model.add rule: (Segment(S) & StartLocation(S, X, Y) & Mode(S, M)) >> AnchorMode(X, Y, M), weight: 1;
+        model.add rule: (Segment(S) & EndLocation(S, X, Y) & Mode(S, M)) >> AnchorMode(X, Y, M), weight: 1;
         model.add rule: (AnchorMode(X, Y, M)) >> Anchor(X, Y), weight: 1;
         model.add rule: (AnchorTime(X, Y, T)) >> Anchor(X, Y), weight: 1;
-        model.add rule: (AnchorTime(X1, Y1, T) && AnchorTime(X2, Y2, T) && ~EqualLocations(X1, Y1, X2, Y2)) >> ~Anchor(X2, Y2), weight: 1;
-        model.add rule: (Anchor(X1, Y1) && Near(X1, Y1, X2, Y2) && ~EqualLocations(X1, Y1, X2, Y2)) >> ~Anchor(X2, Y2), weight: 1;
+        model.add rule: (AnchorTime(X1, Y1, T) & AnchorTime(X2, Y2, T) & ~EqualLocations(X1, Y1, X2, Y2)) >> ~Anchor(X2, Y2), weight: 1;
+        model.add rule: (Anchor(X1, Y1) & Near(X1, Y1, X2, Y2) & ~EqualLocations(X1, Y1, X2, Y2)) >> ~Anchor(X2, Y2), weight: 1;
     }
 
     class ManhattanNear implements ExternalFunction {
@@ -172,13 +171,13 @@ public class Bipedal{
         inserter = ds.getInserter(EndTime, obsPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "end_time_obs.txt").toString());
 
-        insert = ds.getInserter(Mode, obsPartition);
+        inserter = ds.getInserter(Mode, obsPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "mode_obs.txt").toString());
 
-        insert = ds.getInserter(Anchor, targetsPartition);
+        inserter = ds.getInserter(Anchor, targetsPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "anchor_targets.txt").toString());
 
-        insert = ds.getInserter(Anchor, truthPartition);
+        inserter = ds.getInserter(Anchor, truthPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, 'anchor_truth.txt').toString());
 	}
 
@@ -261,5 +260,29 @@ public class Bipedal{
 		evalResults(targetsPartition, truthPartition);
 
 		ds.close();
+	}
+
+    /**
+	 * Populates the ConfigBundle for this PSL program using arguments specified on
+	 * the command line
+	 * @param args - Command line arguments supplied during program invocation
+	 * @return ConfigBundle with the appropriate properties set
+	 */
+	public static ConfigBundle populateConfigBundle(String[] args) {
+		ConfigBundle cb = ConfigManager.getManager().getBundle("bipedal");
+		if (args.length > 0) {
+			cb.setProperty('experiment.data.path', args[0]);
+		}
+		return cb;
+	}
+
+    /**
+	 * Runs the PSL program from the command line with specified arguments
+	 * @param args - Arguments for program options
+	 */
+	public static void main(String[] args){
+		ConfigBundle cb = populateConfigBundle(args);
+		Bipedal bp = new Bipedal(cb);
+		bp.run();
 	}
 }
