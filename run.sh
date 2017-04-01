@@ -1,7 +1,7 @@
 #!/bin/bash
 
 readonly CLASSPATH_FILE='classpath.out'
-readonly TARGET_CLASS='edu.ucsc.linqs.psl.example.easycc.EasyCC'
+readonly TARGET_CLASS='edu.ucsc.linqs.psl.example.bipedal.Bipedal'
 
 FETCH_COMMAND=''
 
