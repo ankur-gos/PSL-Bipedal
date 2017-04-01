@@ -87,7 +87,7 @@ public class Bipedal{
 	}
 
     // Predicates
-    private void addPredicates(){
+    private void definePredicates(){
         model.add predicate: "Segment", types: [ArgumentType.UniqueID]
         model.add predicate: "StartLocation", types: [ArgumentType.UniqueID, ArgumentType.Double, ArgumentType.Double];
         model.add predicate: "EndLocation", types: [ArgumentType.UniqueID, ArgumentType.Double, ArgumentType.Double];
@@ -100,12 +100,12 @@ public class Bipedal{
     }
 
     // Functions
-    private void addFunctions(){
+    private void defineFunctions(){
         model.add function: "EqualLocations", implementation: new LocationComparison();
         model.add function: "Near", implementation: new ManhattanNear();
     }
 
-    private void addRules(){
+    private void defineRules(){
         model.add rule: (Segment(S) && StartLocation(S, X, Y) && StartTime(S, T)) >> AnchorTime(X, Y, T), weight: 1;
         model.add rule: (Segment(S) && EndLocation(S, X, Y) && EndTime(S, T)) >> AnchorTime(X, Y, T), weight: 1;
         model.add rule: (Segment(S) && StartLocation(S, X, Y) && Mode(S, M)) >> AnchorMode(X, Y, M), weight: 1;
@@ -180,5 +180,86 @@ public class Bipedal{
 
         insert = ds.getInserter(Anchor, truthPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, 'anchor_truth.txt').toString());
+	}
+
+    // Run inference
+    private FullInferenceResult runInference(Partition obsPartition, Partition targetsPartition) {
+		log.info("Starting inference");
+
+		Date infStart = new Date();
+		HashSet closed = new HashSet<StandardPredicate>([Knows]);
+		Database inferDB = ds.getDatabase(targetsPartition, closed, obsPartition);
+		MPEInference mpe = new MPEInference(model, inferDB, config.cb);
+		FullInferenceResult result = mpe.mpeInference();
+
+		inferDB.close();
+		mpe.close();
+
+		log.info("Finished inference in {}", TimeCategory.minus(new Date(), infStart));
+		return result;
+	}
+
+    /**
+	 * Writes the inference outputs to a file
+	 */
+    private void writeOutput(Partition targetsPartition) {
+		Database resultsDB = ds.getDatabase(targetsPartition);
+
+		// Temporarily redirect stdout.
+		PrintStream stdout = System.out;
+		PrintStream ps = new PrintStream(new File(Paths.get(config.outputPath, "lives_infer.txt").toString()));
+		System.setOut(ps);
+
+		AtomPrintStream aps = new DefaultAtomPrintStream();
+		Set atomSet = Queries.getAllAtoms(resultsDB,Lives);
+		for (Atom a : atomSet) {
+			aps.printAtom(a);
+		}
+
+		aps.close();
+		ps.close();
+
+		System.setOut(stdout);
+		resultsDB.close();
+	}
+
+    /**
+	 * Evaluates the results of inference versus expected truth values
+	 */
+	private void evalResults(Partition targetsPartition, Partition truthPartition) {
+		Database resultsDB = ds.getDatabase(targetsPartition, [Anchor] as Set);
+		Database truthDB = ds.getDatabase(truthPartition, [Anchor] as Set);
+		DiscretePredictionComparator dpc = new DiscretePredictionComparator(resultsDB);
+		dpc.setBaseline(truthDB);
+		DiscretePredictionStatistics stats = dpc.compare(Anchor);
+		log.info(
+				"Stats: precision {}, recall {}",
+				stats.getPrecision(DiscretePredictionStatistics.BinaryClass.POSITIVE),
+				stats.getRecall(DiscretePredictionStatistics.BinaryClass.POSITIVE));
+
+		resultsDB.close();
+		truthDB.close();
+	}
+
+    /**
+	 * Runs the PSL program using configure options - defines a model, loads data,
+	 * performs inferences, writes output to files, evaluates results
+	 */
+	public void run() {
+		log.info("Running experiment {}", config.experimentName);
+
+		Partition obsPartition = new Partition(PARTITION_OBSERVATIONS);
+		Partition targetsPartition = new Partition(PARTITION_TARGETS);
+		Partition truthPartition = new Partition(PARTITION_TRUTH);
+
+		definePredicates();
+        defineFunctions();
+		defineRules();
+		loadData(obsPartition, targetsPartition, truthPartition);
+		runInference(obsPartition, targetsPartition);
+		writeOutput(targetsPartition);
+		evalResults(targetsPartition, truthPartition);
+
+		ds.close();
 	}
 }
