@@ -162,6 +162,89 @@ public class Bipedal{
     }
 
     /*
+     * crossAnchor
+     * Fill the target partition with the cross product of locations
+     */
+    private void crossAnchor(Partition obsPartition, Partition targetPartition){
+        def obsDb = ds.getDatabase(obsPartition);
+        Set startLocationSet = Queries.getAllAtoms(obsDb, StartLocation);
+        Set endLocationSet = Queries.getAllAtoms(obsDb, EndLocation);
+        Set<Term> locationX = new HashSet<Term>();
+        Set<Term> locationY = new HashSet<Term>();
+        for (Atom a: startLocationSet){
+            Term[] arguments = a.getArguments();
+            locationX.add(arguments[1]);
+            locationY.add(arguments[2]);
+        }
+        for (Atom a: endLocationSet){
+            Term[] arguments = a.getArguments();
+            locationX.add(arguments[1]);
+            locationY.add(arguments[2]);
+        }
+        Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
+        popMap.put(new Variable("LocationX"), locationX);
+        popMap.put(new Variable("LocationY"), locationY);
+        def targetDb = ds.getDatabase(targetPartition);
+        DatabasePopulator dbPop = new DatabasePopulator(targetDb);
+        dbPop.populate((Anchor(LocationX, LocationY)).getFormula(), popMap);
+        AtomPrintStream aps = new DefaultAtomPrintStream();
+        Set anchorSet = Queries.getAllAtoms(targetDb, Anchor);
+        for (Atom a : anchorSet) {
+            aps.printAtom(a);
+        }
+        aps.close();
+        obsDb.close();
+        targetDb.close();
+    }
+
+    // TODO: Refactor the cross code to reuse some code
+    /*
+     * crossLocationMode
+     * Access the observation partition, and cross the locations with each possible
+     * mode
+     */
+    private void crossLocationMode(Partition obsPartition, Partition targetPartition){
+        def obsDb = ds.getDatabase(obsPartition);
+        Set startLocationSet = Queries.getAllAtoms(obsDb, StartLocation);
+        Set endLocationSet = Queries.getAllAtoms(obsDb, EndLocation);
+        Set modeSet = Queries.getAllAtoms(obsDb, Mode);
+        Set<Term> locationX = new HashSet<Term>();
+        Set<Term> locationY = new HashSet<Term>();
+        Set<Term> modes = new HashSet<Term>();
+        for (Atom a: startLocationSet){
+            Term[] arguments = a.getArguments();
+            locationX.add(arguments[1]);
+            locationY.add(arguments[2]);
+        }
+        for (Atom a: endLocationSet){
+            Term[] arguments = a.getArguments();
+            locationX.add(arguments[1]);
+            locationY.add(arguments[2]);
+        }
+        for (Atom a: modeSet){
+            Term[] arguments = a.getArguments();
+            modes.add(arguments[1]);
+        }
+
+        Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
+        popMap.put(new Variable("LocationX"), locationX);
+        popMap.put(new Variable("LocationY"), locationY);
+        popMap.put(new Variable("ModeTerm"), modes);
+        def targetDb = ds.getDatabase(targetPartition);
+        DatabasePopulator dbPop = new DatabasePopulator(targetDb);
+        dbPop.populate((AnchorMode(LocationX, LocationY, ModeTerm)).getFormula(), popMap);
+        AtomPrintStream aps = new DefaultAtomPrintStream();
+        // Set anchorSet = Queries.getAllAtoms(targetDb, AnchorMode);
+        // for (Atom a : anchorSet) {
+        //     aps.printAtom(a);
+        // }
+        // aps.close();
+        obsDb.close();
+        targetDb.close()
+    }
+
+
+    /*
      * crossLocationTime
      * Access the observation partition, and cross the locations with each possible
      * time of day
@@ -176,6 +259,8 @@ public class Bipedal{
         Set<Term> locationX = new HashSet<Term>();
         Set<Term> locationY = new HashSet<Term>();
         Set<Term> times = new HashSet<Term>();
+        // For each atom in the set, get the terms and add
+        // Them to the correct hashset
         for (Atom a: startLocationSet){
             Term[] arguments = a.getArguments();
             locationX.add(arguments[1]);
@@ -194,6 +279,8 @@ public class Bipedal{
             Term[] arguments = a.getArguments();
             times.add(arguments[1])
         }
+        // Make a new variable to term set map, populate it,
+        // then use THAT to populate the target partition
         Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
         popMap.put(new Variable("LocationX"), locationX);
         popMap.put(new Variable("LocationY"), locationY);
@@ -233,16 +320,18 @@ public class Bipedal{
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "mode_obs.txt").toString())
 
         crossLocationTime(obsPartition, targetsPartition);
+        crossLocationMode(obsPartition, targetsPartition);
+        crossAnchor(obsPartition, targetsPartition);
         
-        inserter = ds.getInserter(AnchorMode, targetsPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "anchor_mode_targets.txt").toString());
+        // inserter = ds.getInserter(AnchorMode, targetsPartition);
+        // InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "anchor_mode_targets.txt").toString());
 
         // inserter = ds.getInserter(AnchorTime, targetsPartition);
         // InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath,
         // "anchor_time_targets.txt").toString()); 
 
-        inserter = ds.getInserter(Anchor, targetsPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "anchor_targets.txt").toString());
+        // inserter = ds.getInserter(Anchor, targetsPartition);
+        // InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "anchor_targets.txt").toString());
 
         inserter = ds.getInserter(Anchor, truthPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, 'anchor_truth.txt').toString());
