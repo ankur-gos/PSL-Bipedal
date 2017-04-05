@@ -234,7 +234,6 @@ public class Bipedal{
         targetDb.close()
     }
 
-
     /*
      * crossLocationTime
      * Access the observation partition, and cross the locations with each possible
@@ -268,6 +267,7 @@ public class Bipedal{
     private void loadData(Partition obsPartition, Partition targetsPartition, Partition truthPartition) {
         log.info("Loading data into database");
 
+        // Fill all of the obs partition from files
         Inserter inserter = ds.getInserter(Segment, obsPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "segment_obs.txt").toString());
 
@@ -286,34 +286,13 @@ public class Bipedal{
         inserter = ds.getInserter(Mode, obsPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "mode_obs.txt").toString())
 
+        // Run the cross functions to fill the targets partition
         crossLocationTime(obsPartition, targetsPartition);
         crossLocationMode(obsPartition, targetsPartition);
         crossAnchor(obsPartition, targetsPartition);
-        
-        // inserter = ds.getInserter(AnchorMode, targetsPartition);
-        // InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "anchor_mode_targets.txt").toString());
-
-        // inserter = ds.getInserter(AnchorTime, targetsPartition);
-        // InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath,
-        // "anchor_time_targets.txt").toString()); 
-
-        // inserter = ds.getInserter(Anchor, targetsPartition);
-        // InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "anchor_targets.txt").toString());
 
         inserter = ds.getInserter(Anchor, truthPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, 'anchor_truth.txt').toString());
-
-        // def db = ds.getDatabase(targetsPartition);
-
-        // AtomPrintStream aps = new DefaultAtomPrintStream();
-        // Set anchorSet = Queries.getAllAtoms(db, AnchorTime);
-        // for (Atom a : anchorSet) {
-        //     aps.printAtom(a);
-        // }
-        // db.close();
-        // aps.close();
-       
-
     }
 
     // Run inference
@@ -345,8 +324,6 @@ public class Bipedal{
         System.setOut(ps);
 
         AtomPrintStream aps = new DefaultAtomPrintStream();
-        // Set modeSet = Queries.getAllAtoms(resultsDB,AnchorMode)
-        // Set timeSet = Queries.getAllAtoms(resultsDB,AnchorTime);
         Set anchorSet = Queries.getAllAtoms(resultsDB, Anchor);
         for (Atom a : anchorSet) {
             aps.printAtom(a);
