@@ -87,10 +87,10 @@ public class Bipedal{
         model.add predicate: "Segment", types: [ArgumentType.UniqueID]
         model.add predicate: "StartLocation", types: [ArgumentType.UniqueID, ArgumentType.Double, ArgumentType.Double];
         model.add predicate: "EndLocation", types: [ArgumentType.UniqueID, ArgumentType.Double, ArgumentType.Double];
-        model.add predicate: "StartTime", types: [ArgumentType.UniqueID, ArgumentType.Date];
-        model.add predicate: "EndTime", types: [ArgumentType.UniqueID, ArgumentType.Date];
+        model.add predicate: "StartTime", types: [ArgumentType.UniqueID, ArgumentType.String];
+        model.add predicate: "EndTime", types: [ArgumentType.UniqueID, ArgumentType.String];
         model.add predicate: "Mode", types: [ArgumentType.UniqueID, ArgumentType.String];
-        model.add predicate: "AnchorTime", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.Date];
+        model.add predicate: "AnchorTime", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.String];
         model.add predicate: "AnchorMode", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.String];
         model.add predicate: "Anchor", types: [ArgumentType.Double, ArgumentType.Double];
     }
@@ -103,9 +103,7 @@ public class Bipedal{
 
     private void defineRules(){
         log.info("Defining model rules");
-        model.add(rule: (Segment(S) & StartLocation(S, X, Y) & StartTime(S, T)) >> AnchorTime(X, Y, T),
-                  squared: config.sqPotentials,
-                  weight: 1);
+        model.add rule: (Segment(S) & StartLocation(S, X, Y) & StartTime(S, T)) >> AnchorTime(X, Y, T), weight: 1;
         model.add rule: (Segment(S) & EndLocation(S, X, Y) & EndTime(S, T)) >> AnchorTime(X, Y, T), weight: 1;
         model.add rule: (Segment(S) & StartLocation(S, X, Y) & Mode(S, M)) >> AnchorMode(X, Y, M), weight: 1;
         model.add rule: (Segment(S) & EndLocation(S, X, Y) & Mode(S, M)) >> AnchorMode(X, Y, M), weight: 1;
@@ -186,6 +184,20 @@ public class Bipedal{
 
         inserter = ds.getInserter(Anchor, truthPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, 'anchor_truth.txt').toString());
+
+        def db = ds.getDatabase(targetsPartition);
+
+        AtomPrintStream aps = new DefaultAtomPrintStream();
+        // Set modeSet = Queries.getAllAtoms(resultsDB,AnchorMode)
+        // Set timeSet = Queries.getAllAtoms(resultsDB,AnchorTime);
+		Set anchorSet = Queries.getAllAtoms(db, AnchorTime);
+		for (Atom a : anchorSet) {
+			aps.printAtom(a);
+		}
+        db.close();
+		aps.close();
+       
+
 	}
 
     // Run inference
@@ -193,7 +205,7 @@ public class Bipedal{
 		log.info("Starting inference");
 
 		Date infStart = new Date();
-		HashSet closed = new HashSet<StandardPredicate>([AnchorTime]);
+		HashSet closed = new HashSet<StandardPredicate>([StartLocation,EndLocation,StartTime,EndTime,Segment,Mode]);
 		Database inferDB = ds.getDatabase(targetsPartition, closed, obsPartition);
 		MPEInference mpe = new MPEInference(model, inferDB, config.cb);
 		FullInferenceResult result = mpe.mpeInference();
