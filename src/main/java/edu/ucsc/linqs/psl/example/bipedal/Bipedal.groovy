@@ -1,3 +1,9 @@
+/*
+ * Bipedal.groovy
+ * Main file for inference
+ * Ankur Goswami, agoswam3@ucsc.edu
+ */
+
 package edu.ucsc.linqs.psl.example.bipedal;
 
 import edu.umd.cs.psl.application.inference.MPEInference;
@@ -162,10 +168,11 @@ public class Bipedal{
     }
 
     /*
-     * crossAnchor
-     * Fill the target partition with the cross product of locations
+     * getLocations
+     * Access the observation partition, get the start and end locations and extract them into two
+     * hashsets
      */
-    private void crossAnchor(Partition obsPartition, Partition targetPartition){
+    private Tuple getLocations(Partition obsPartition){
         def obsDb = ds.getDatabase(obsPartition);
         Set startLocationSet = Queries.getAllAtoms(obsDb, StartLocation);
         Set endLocationSet = Queries.getAllAtoms(obsDb, EndLocation);
@@ -181,64 +188,48 @@ public class Bipedal{
             locationX.add(arguments[1]);
             locationY.add(arguments[2]);
         }
+        obsDb.close();
+        return new Tuple(locationX, locationY);
+    }
+
+    /*
+     * crossAnchor
+     * Fill the target partition with the cross product of locations
+     */
+    private void crossAnchor(Partition obsPartition, Partition targetPartition){
+        def locations = getLocations(obsPartition);
         Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
-        popMap.put(new Variable("LocationX"), locationX);
-        popMap.put(new Variable("LocationY"), locationY);
+        popMap.put(new Variable("LocationX"), locations[0]);
+        popMap.put(new Variable("LocationY"), locations[1]);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
         dbPop.populate((Anchor(LocationX, LocationY)).getFormula(), popMap);
         AtomPrintStream aps = new DefaultAtomPrintStream();
-        Set anchorSet = Queries.getAllAtoms(targetDb, Anchor);
-        for (Atom a : anchorSet) {
-            aps.printAtom(a);
-        }
-        aps.close();
-        obsDb.close();
         targetDb.close();
     }
 
-    // TODO: Refactor the cross code to reuse some code
     /*
      * crossLocationMode
      * Access the observation partition, and cross the locations with each possible
      * mode
      */
     private void crossLocationMode(Partition obsPartition, Partition targetPartition){
+        def locations = getLocations(obsPartition);
         def obsDb = ds.getDatabase(obsPartition);
-        Set startLocationSet = Queries.getAllAtoms(obsDb, StartLocation);
-        Set endLocationSet = Queries.getAllAtoms(obsDb, EndLocation);
         Set modeSet = Queries.getAllAtoms(obsDb, Mode);
-        Set<Term> locationX = new HashSet<Term>();
-        Set<Term> locationY = new HashSet<Term>();
         Set<Term> modes = new HashSet<Term>();
-        for (Atom a: startLocationSet){
-            Term[] arguments = a.getArguments();
-            locationX.add(arguments[1]);
-            locationY.add(arguments[2]);
-        }
-        for (Atom a: endLocationSet){
-            Term[] arguments = a.getArguments();
-            locationX.add(arguments[1]);
-            locationY.add(arguments[2]);
-        }
         for (Atom a: modeSet){
             Term[] arguments = a.getArguments();
             modes.add(arguments[1]);
         }
-
         Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
-        popMap.put(new Variable("LocationX"), locationX);
-        popMap.put(new Variable("LocationY"), locationY);
+        popMap.put(new Variable("LocationX"), locations[0]);
+        popMap.put(new Variable("LocationY"), locations[1]);
         popMap.put(new Variable("ModeTerm"), modes);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
         dbPop.populate((AnchorMode(LocationX, LocationY, ModeTerm)).getFormula(), popMap);
         AtomPrintStream aps = new DefaultAtomPrintStream();
-        // Set anchorSet = Queries.getAllAtoms(targetDb, AnchorMode);
-        // for (Atom a : anchorSet) {
-        //     aps.printAtom(a);
-        // }
-        // aps.close();
         obsDb.close();
         targetDb.close()
     }
@@ -250,27 +241,11 @@ public class Bipedal{
      * time of day
      */
     private void crossLocationTime(Partition obsPartition, Partition targetPartition){
+        def locations = getLocations(obsPartition);
         def obsDb = ds.getDatabase(obsPartition);
-        // Get the StartLocation, EndLocations, StartTimes, and EndTimes sets,
-        Set startLocationSet = Queries.getAllAtoms(obsDb, StartLocation);
-        Set endLocationSet = Queries.getAllAtoms(obsDb, EndLocation);
         Set startTimeSet = Queries.getAllAtoms(obsDb, StartTime);
         Set endTimeSet = Queries.getAllAtoms(obsDb, EndTime);
-        Set<Term> locationX = new HashSet<Term>();
-        Set<Term> locationY = new HashSet<Term>();
         Set<Term> times = new HashSet<Term>();
-        // For each atom in the set, get the terms and add
-        // Them to the correct hashset
-        for (Atom a: startLocationSet){
-            Term[] arguments = a.getArguments();
-            locationX.add(arguments[1]);
-            locationY.add(arguments[2]);
-        }
-        for (Atom a: endLocationSet){
-            Term[] arguments = a.getArguments();
-            locationX.add(arguments[1]);
-            locationY.add(arguments[2]);
-        }
         for (Atom a: startTimeSet){
             Term[] arguments = a.getArguments();
             times.add(arguments[1]);
@@ -279,21 +254,13 @@ public class Bipedal{
             Term[] arguments = a.getArguments();
             times.add(arguments[1])
         }
-        // Make a new variable to term set map, populate it,
-        // then use THAT to populate the target partition
         Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
-        popMap.put(new Variable("LocationX"), locationX);
-        popMap.put(new Variable("LocationY"), locationY);
+        popMap.put(new Variable("LocationX"), locations[0]);
+        popMap.put(new Variable("LocationY"), locations[1]);
         popMap.put(new Variable("Time"), times);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
         dbPop.populate((AnchorTime(LocationX, LocationY, Time)).getFormula(), popMap);
-        // AtomPrintStream aps = new DefaultAtomPrintStream();
-        // Set anchorSet = Queries.getAllAtoms(targetDb, AnchorTime);
-        // for (Atom a : anchorSet) {
-        //     aps.printAtom(a);
-        // }
-        // aps.close();
         obsDb.close();
         targetDb.close();
     }
