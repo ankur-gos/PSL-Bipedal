@@ -103,14 +103,16 @@ public class Bipedal{
 
     private void defineRules(){
         log.info("Defining model rules");
-        model.add rule: (Segment(S) & StartLocation(S, X, Y) & StartTime(S, T)) >> AnchorTime(X, Y, T), weight: 1;
+        model.add rule: (Segment(S) & StartLocation(S, X, Y) & StartTime(S, T)) >> AnchorTime(X, Y, T),
+                  weight: 1;
         model.add rule: (Segment(S) & EndLocation(S, X, Y) & EndTime(S, T)) >> AnchorTime(X, Y, T), weight: 1;
         model.add rule: (Segment(S) & StartLocation(S, X, Y) & Mode(S, M)) >> AnchorMode(X, Y, M), weight: 1;
         model.add rule: (Segment(S) & EndLocation(S, X, Y) & Mode(S, M)) >> AnchorMode(X, Y, M), weight: 1;
-        model.add rule: (AnchorMode(X, Y, M)) >> Anchor(X, Y), weight: 1;
-        model.add rule: (AnchorTime(X, Y, T)) >> Anchor(X, Y), weight: 1;
+        model.add rule: (AnchorMode(X, Y, M)) >> Anchor(X, Y), weight: 3;
+        model.add rule: (AnchorTime(X, Y, T)) >> Anchor(X, Y), weight: 3;
         model.add rule: (AnchorTime(X1, Y1, T) & AnchorTime(X2, Y2, T) & ~EqualLocations(X1, Y1, X2, Y2)) >> ~Anchor(X2, Y2), weight: 1;
         model.add rule: (Anchor(X1, Y1) & Near(X1, Y1, X2, Y2) & ~EqualLocations(X1, Y1, X2, Y2)) >> ~Anchor(X2, Y2), weight: 1;
+		model.add rule: ~Anchor(X, Y), weight: 2;
     }
 
     class ManhattanNear implements ExternalFunction {
