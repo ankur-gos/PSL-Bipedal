@@ -26,6 +26,9 @@ import edu.umd.cs.psl.ui.loading.InserterUtils;
 import edu.umd.cs.psl.util.database.Queries;
 import edu.umd.cs.psl.model.function.ExternalFunction;
 import edu.umd.cs.psl.model.argument.GroundTerm;
+import edu.umd.cs.psl.model.argument.Term;
+import java.util.HashSet;
+import edu.umd.cs.psl.model.argument.Variable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,52 +38,58 @@ import java.nio.file.Paths
 
 public class Bipedal{
     private static final PARTITION_OBSERVATIONS = 0;
-	private static final PARTITION_TARGETS = 1;
-	private static final PARTITION_TRUTH = 2;
+    private static final PARTITION_TARGETS = 1;
+    private static final PARTITION_TRUTH = 2;
 
-	private Logger log;
-	private DataStore ds;
-	private PSLConfig config;
-	private PSLModel model;
+    private Logger log;
+    private DataStore ds;
+    private PSLConfig config;
+    private PSLModel model;
 
     // Config
     // Copy pasted from example
     private class PSLConfig {
         public ConfigBundle cb;
         public String experimentName;
-		public String dbPath;
-		public String dataPath;
-		public String outputPath;
+        public String dbPath;
+        public String dataPath;
+        public String outputPath;
 
-		public boolean sqPotentials = true;
-		public Map weightMap = [
-				"Knows":10,
-				"Prior":2
-		];
-		public boolean useFunctionalConstraint = false;
-		public boolean useFunctionalRule = false;
+        public boolean sqPotentials = true;
+        public Map weightMap = [
+                "Knows":10,
+                "Prior":2
+        ];
+        public String[] timesOfDay = [
+            "Morning",
+            "Afternoon",
+            "Evening",
+            "Night"
+        ]
+        public boolean useFunctionalConstraint = false;
+        public boolean useFunctionalRule = false;
 
-		public PSLConfig(ConfigBundle cb){
-			this.cb = cb;
+        public PSLConfig(ConfigBundle cb){
+            this.cb = cb;
 
-			this.experimentName = cb.getString('experiment.name', 'default');
-			this.dbPath = cb.getString('experiment.dbpath', '/tmp');
-			this.dataPath = cb.getString('experiment.data.path', 'data');
-			this.outputPath = cb.getString('experiment.output.outputdir', Paths.get('output', this.experimentName).toString());
-			this.weightMap["Knows"] = cb.getInteger('model.weights.knows', weightMap["Knows"]);
-			this.weightMap["Prior"] = cb.getInteger('model.weights.prior', weightMap["Prior"]);
-			this.useFunctionalConstraint = cb.getBoolean('model.constraints.functional', false);
-			this.useFunctionalRule = cb.getBoolean('model.rules.functional', false);
-		}
-	}
+            this.experimentName = cb.getString('experiment.name', 'default');
+            this.dbPath = cb.getString('experiment.dbpath', '/tmp');
+            this.dataPath = cb.getString('experiment.data.path', 'data');
+            this.outputPath = cb.getString('experiment.output.outputdir', Paths.get('output', this.experimentName).toString());
+            this.weightMap["Knows"] = cb.getInteger('model.weights.knows', weightMap["Knows"]);
+            this.weightMap["Prior"] = cb.getInteger('model.weights.prior', weightMap["Prior"]);
+            this.useFunctionalConstraint = cb.getBoolean('model.constraints.functional', false);
+            this.useFunctionalRule = cb.getBoolean('model.rules.functional', false);
+        }
+    }
 
     // Constructor
     public Bipedal(ConfigBundle cb) {
-		log = LoggerFactory.getLogger(this.class);
-		config = new PSLConfig(cb);
-		ds = new RDBMSDataStore(new H2DatabaseDriver(Type.Disk, Paths.get(config.dbPath, 'easycc').toString(), true), cb);
-		model = new PSLModel(this, ds);
-	}
+        log = LoggerFactory.getLogger(this.class);
+        config = new PSLConfig(cb);
+        ds = new RDBMSDataStore(new H2DatabaseDriver(Type.Disk, Paths.get(config.dbPath, 'easycc').toString(), true), cb);
+        model = new PSLModel(this, ds);
+    }
 
     // Predicates
     private void definePredicates(){
@@ -112,7 +121,7 @@ public class Bipedal{
         model.add rule: (AnchorTime(X, Y, T)) >> Anchor(X, Y), weight: 3;
         model.add rule: (AnchorTime(X1, Y1, T) & AnchorTime(X2, Y2, T) & ~EqualLocations(X1, Y1, X2, Y2)) >> ~Anchor(X2, Y2), weight: 1;
         model.add rule: (Anchor(X1, Y1) & Near(X1, Y1, X2, Y2) & ~EqualLocations(X1, Y1, X2, Y2)) >> ~Anchor(X2, Y2), weight: 1;
-		model.add rule: ~Anchor(X, Y), weight: 2;
+        model.add rule: ~Anchor(X, Y), weight: 2;
     }
 
     class ManhattanNear implements ExternalFunction {
@@ -130,7 +139,7 @@ public class Bipedal{
         @Override
         public double getValue(ReadOnlyDatabase db, GroundTerm... args){
             double mdist = (args[0].getValue() - args[2].getValue()).abs() + (args[1].getValue() - args[3].getValue()).abs();
-            return mdist < 3.0 ? 1.0 : 0.0;
+            return mdist < 5.0 ? 1.0 : 0.0;
         }
     }
 
@@ -151,35 +160,86 @@ public class Bipedal{
             return args[0].getValue() == args[2].getValue() && args[1].getValue() == args[3].getValue() ? 1.0 : 0.0;
         }
     }
-    
+
+    /*
+     * crossLocationTime
+     * Access the observation partition, and cross the locations with each possible
+     * time of day
+     */
+    private void crossLocationTime(Partition obsPartition, Partition targetPartition){
+        def obsDb = ds.getDatabase(obsPartition);
+        // Get the StartLocation, EndLocations, StartTimes, and EndTimes sets,
+        Set startLocationSet = Queries.getAllAtoms(obsDb, StartLocation);
+        Set endLocationSet = Queries.getAllAtoms(obsDb, EndLocation);
+        Set startTimeSet = Queries.getAllAtoms(obsDb, StartTime);
+        Set endTimeSet = Queries.getAllAtoms(obsDb, EndTime);
+        Set<Term> locationX = new HashSet<Term>();
+        Set<Term> locationY = new HashSet<Term>();
+        Set<Term> times = new HashSet<Term>();
+        for (Atom a: startLocationSet){
+            Term[] arguments = a.getArguments();
+            locationX.add(arguments[1]);
+            locationY.add(arguments[2]);
+        }
+        for (Atom a: endLocationSet){
+            Term[] arguments = a.getArguments();
+            locationX.add(arguments[1]);
+            locationY.add(arguments[2]);
+        }
+        for (Atom a: startTimeSet){
+            Term[] arguments = a.getArguments();
+            times.add(arguments[1]);
+        }
+        for (Atom a: endTimeSet){
+            Term[] arguments = a.getArguments();
+            times.add(arguments[1])
+        }
+        Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
+        popMap.put(new Variable("LocationX"), locationX);
+        popMap.put(new Variable("LocationY"), locationY);
+        popMap.put(new Variable("Time"), times);
+        def targetDb = ds.getDatabase(targetPartition);
+        DatabasePopulator dbPop = new DatabasePopulator(targetDb);
+        dbPop.populate((AnchorTime(LocationX, LocationY, Time)).getFormula(), popMap);
+        // AtomPrintStream aps = new DefaultAtomPrintStream();
+        // Set anchorSet = Queries.getAllAtoms(targetDb, AnchorTime);
+        // for (Atom a : anchorSet) {
+        //     aps.printAtom(a);
+        // }
+        // aps.close();
+        obsDb.close();
+        targetDb.close();
+    }
 
     private void loadData(Partition obsPartition, Partition targetsPartition, Partition truthPartition) {
-		log.info("Loading data into database");
+        log.info("Loading data into database");
 
         Inserter inserter = ds.getInserter(Segment, obsPartition);
-		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "segment_obs.txt").toString());
+        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "segment_obs.txt").toString());
 
-		inserter = ds.getInserter(StartLocation, obsPartition);
-		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "start_location_obs.txt").toString());
+        inserter = ds.getInserter(StartLocation, obsPartition);
+        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "start_location_obs.txt").toString());
 
         inserter = ds.getInserter(EndLocation, obsPartition);
-		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "end_location_obs.txt").toString());
+        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "end_location_obs.txt").toString());
 
         inserter = ds.getInserter(StartTime, obsPartition);
-		InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "start_time_obs.txt").toString());
+        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "start_time_obs.txt").toString());
 
         inserter = ds.getInserter(EndTime, obsPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "end_time_obs.txt").toString());
 
         inserter = ds.getInserter(Mode, obsPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "mode_obs.txt").toString())
+
+        crossLocationTime(obsPartition, targetsPartition);
         
         inserter = ds.getInserter(AnchorMode, targetsPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "anchor_mode_targets.txt").toString());
 
-        inserter = ds.getInserter(AnchorTime, targetsPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath,
-        "anchor_time_targets.txt").toString()); 
+        // inserter = ds.getInserter(AnchorTime, targetsPartition);
+        // InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath,
+        // "anchor_time_targets.txt").toString()); 
 
         inserter = ds.getInserter(Anchor, targetsPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "anchor_targets.txt").toString());
@@ -187,125 +247,123 @@ public class Bipedal{
         inserter = ds.getInserter(Anchor, truthPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, 'anchor_truth.txt').toString());
 
-        def db = ds.getDatabase(targetsPartition);
+        // def db = ds.getDatabase(targetsPartition);
+
+        // AtomPrintStream aps = new DefaultAtomPrintStream();
+        // Set anchorSet = Queries.getAllAtoms(db, AnchorTime);
+        // for (Atom a : anchorSet) {
+        //     aps.printAtom(a);
+        // }
+        // db.close();
+        // aps.close();
+       
+
+    }
+
+    // Run inference
+    private FullInferenceResult runInference(Partition obsPartition, Partition targetsPartition) {
+        log.info("Starting inference");
+
+        Date infStart = new Date();
+        HashSet closed = new HashSet<StandardPredicate>([StartLocation,EndLocation,StartTime,EndTime,Segment,Mode]);
+        Database inferDB = ds.getDatabase(targetsPartition, closed, obsPartition);
+        MPEInference mpe = new MPEInference(model, inferDB, config.cb);
+        FullInferenceResult result = mpe.mpeInference();
+
+        inferDB.close();
+        mpe.close();
+
+        log.info("Finished inference in {}", TimeCategory.minus(new Date(), infStart));
+        return result;
+    }
+
+    /**
+     * Writes the inference outputs to a file
+     */
+    private void writeOutput(Partition targetsPartition) {
+        Database resultsDB = ds.getDatabase(targetsPartition);
+
+        // Temporarily redirect stdout.
+        PrintStream stdout = System.out;
+        PrintStream ps = new PrintStream(new File(Paths.get(config.outputPath, "anchor_infer.txt").toString()));
+        System.setOut(ps);
 
         AtomPrintStream aps = new DefaultAtomPrintStream();
         // Set modeSet = Queries.getAllAtoms(resultsDB,AnchorMode)
         // Set timeSet = Queries.getAllAtoms(resultsDB,AnchorTime);
-		Set anchorSet = Queries.getAllAtoms(db, AnchorTime);
-		for (Atom a : anchorSet) {
-			aps.printAtom(a);
-		}
-        db.close();
-		aps.close();
-       
+        Set anchorSet = Queries.getAllAtoms(resultsDB, Anchor);
+        for (Atom a : anchorSet) {
+            aps.printAtom(a);
+        }
 
-	}
+        aps.close();
+        ps.close();
 
-    // Run inference
-    private FullInferenceResult runInference(Partition obsPartition, Partition targetsPartition) {
-		log.info("Starting inference");
-
-		Date infStart = new Date();
-		HashSet closed = new HashSet<StandardPredicate>([StartLocation,EndLocation,StartTime,EndTime,Segment,Mode]);
-		Database inferDB = ds.getDatabase(targetsPartition, closed, obsPartition);
-		MPEInference mpe = new MPEInference(model, inferDB, config.cb);
-		FullInferenceResult result = mpe.mpeInference();
-
-		inferDB.close();
-		mpe.close();
-
-		log.info("Finished inference in {}", TimeCategory.minus(new Date(), infStart));
-		return result;
-	}
+        System.setOut(stdout);
+        resultsDB.close();
+    }
 
     /**
-	 * Writes the inference outputs to a file
-	 */
-    private void writeOutput(Partition targetsPartition) {
-		Database resultsDB = ds.getDatabase(targetsPartition);
+     * Evaluates the results of inference versus expected truth values
+     */
+    private void evalResults(Partition targetsPartition, Partition truthPartition) {
+        Database resultsDB = ds.getDatabase(targetsPartition, [Anchor] as Set);
+        Database truthDB = ds.getDatabase(truthPartition, [Anchor] as Set);
+        DiscretePredictionComparator dpc = new DiscretePredictionComparator(resultsDB);
+        dpc.setBaseline(truthDB);
+        DiscretePredictionStatistics stats = dpc.compare(Anchor);
+        log.info(
+                "Stats: precision {}, recall {}",
+                stats.getPrecision(DiscretePredictionStatistics.BinaryClass.POSITIVE),
+                stats.getRecall(DiscretePredictionStatistics.BinaryClass.POSITIVE));
 
-		// Temporarily redirect stdout.
-		PrintStream stdout = System.out;
-		PrintStream ps = new PrintStream(new File(Paths.get(config.outputPath, "anchor_infer.txt").toString()));
-		System.setOut(ps);
-
-		AtomPrintStream aps = new DefaultAtomPrintStream();
-        // Set modeSet = Queries.getAllAtoms(resultsDB,AnchorMode)
-        // Set timeSet = Queries.getAllAtoms(resultsDB,AnchorTime);
-		Set anchorSet = Queries.getAllAtoms(resultsDB, Anchor);
-		for (Atom a : anchorSet) {
-			aps.printAtom(a);
-		}
-
-		aps.close();
-		ps.close();
-
-		System.setOut(stdout);
-		resultsDB.close();
-	}
+        resultsDB.close();
+        truthDB.close();
+    }
 
     /**
-	 * Evaluates the results of inference versus expected truth values
-	 */
-	private void evalResults(Partition targetsPartition, Partition truthPartition) {
-		Database resultsDB = ds.getDatabase(targetsPartition, [Anchor] as Set);
-		Database truthDB = ds.getDatabase(truthPartition, [Anchor] as Set);
-		DiscretePredictionComparator dpc = new DiscretePredictionComparator(resultsDB);
-		dpc.setBaseline(truthDB);
-		DiscretePredictionStatistics stats = dpc.compare(Anchor);
-		log.info(
-				"Stats: precision {}, recall {}",
-				stats.getPrecision(DiscretePredictionStatistics.BinaryClass.POSITIVE),
-				stats.getRecall(DiscretePredictionStatistics.BinaryClass.POSITIVE));
+     * Runs the PSL program using configure options - defines a model, loads data,
+     * performs inferences, writes output to files, evaluates results
+     */
+    public void run() {
+        log.info("Running experiment {}", config.experimentName);
 
-		resultsDB.close();
-		truthDB.close();
-	}
+        Partition obsPartition = new Partition(PARTITION_OBSERVATIONS);
+        Partition targetsPartition = new Partition(PARTITION_TARGETS);
+        Partition truthPartition = new Partition(PARTITION_TRUTH);
 
-    /**
-	 * Runs the PSL program using configure options - defines a model, loads data,
-	 * performs inferences, writes output to files, evaluates results
-	 */
-	public void run() {
-		log.info("Running experiment {}", config.experimentName);
-
-		Partition obsPartition = new Partition(PARTITION_OBSERVATIONS);
-		Partition targetsPartition = new Partition(PARTITION_TARGETS);
-		Partition truthPartition = new Partition(PARTITION_TRUTH);
-
-		definePredicates();
+        definePredicates();
         defineFunctions();
-		defineRules();
-		loadData(obsPartition, targetsPartition, truthPartition);
-		runInference(obsPartition, targetsPartition);
-		writeOutput(targetsPartition);
-		evalResults(targetsPartition, truthPartition);
+        defineRules();
+        loadData(obsPartition, targetsPartition, truthPartition);
+        runInference(obsPartition, targetsPartition);
+        writeOutput(targetsPartition);
+        evalResults(targetsPartition, truthPartition);
 
-		ds.close();
-	}
-
-    /**
-	 * Populates the ConfigBundle for this PSL program using arguments specified on
-	 * the command line
-	 * @param args - Command line arguments supplied during program invocation
-	 * @return ConfigBundle with the appropriate properties set
-	 */
-	public static ConfigBundle populateConfigBundle(String[] args) {
-		ConfigBundle cb = ConfigManager.getManager().getBundle("bipedal");
-		if (args.length > 0) {
-			cb.setProperty('experiment.data.path', args[0]);
-		}
-		return cb;
-	}
+        ds.close();
+    }
 
     /**
-	 * Runs the PSL program from the command line with specified arguments
-	 * @param args - Arguments for program options
-	 */
-	public static void main(String[] args){
-		ConfigBundle cb = populateConfigBundle(args);
-		Bipedal bp = new Bipedal(cb);
-		bp.run();
-	}
+     * Populates the ConfigBundle for this PSL program using arguments specified on
+     * the command line
+     * @param args - Command line arguments supplied during program invocation
+     * @return ConfigBundle with the appropriate properties set
+     */
+    public static ConfigBundle populateConfigBundle(String[] args) {
+        ConfigBundle cb = ConfigManager.getManager().getBundle("bipedal");
+        if (args.length > 0) {
+            cb.setProperty('experiment.data.path', args[0]);
+        }
+        return cb;
+    }
+
+    /**
+     * Runs the PSL program from the command line with specified arguments
+     * @param args - Arguments for program options
+     */
+    public static void main(String[] args){
+        ConfigBundle cb = populateConfigBundle(args);
+        Bipedal bp = new Bipedal(cb);
+        bp.run();
+    }
 }
