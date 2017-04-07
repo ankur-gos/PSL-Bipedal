@@ -30,3 +30,4 @@ classpath.out
 # Editor temporary #
 ####################
 *.swp
+output/

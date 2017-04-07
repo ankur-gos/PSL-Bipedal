@@ -108,6 +108,12 @@ public class Bipedal{
         model.add predicate: "AnchorTime", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.String];
         model.add predicate: "AnchorMode", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.String];
         model.add predicate: "Anchor", types: [ArgumentType.Double, ArgumentType.Double];
+
+        // Frequent trips
+        model.add predicate: "FrequentTrip", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double];
+        model.add predicate: "FrequentTripTime", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.String, ArgumentType.String]
+        model.add predicate: "FrequentTripMode", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.String]
+        model.add predicate: "SegmentDay", types: [ArgumentType.UniqueID, ArgumentType.String]
     }
 
     // Functions
@@ -118,6 +124,7 @@ public class Bipedal{
 
     private void defineRules(){
         log.info("Defining model rules");
+        // Anchor locations
         model.add rule: (Segment(S) & StartLocation(S, X, Y) & StartTime(S, T)) >> AnchorTime(X, Y, T),
                   weight: 1;
         model.add rule: (Segment(S) & EndLocation(S, X, Y) & EndTime(S, T)) >> AnchorTime(X, Y, T), weight: 1;
@@ -128,6 +135,18 @@ public class Bipedal{
         model.add rule: (AnchorTime(X1, Y1, T) & AnchorTime(X2, Y2, T) & ~EqualLocations(X1, Y1, X2, Y2)) >> ~Anchor(X2, Y2), weight: 1;
         model.add rule: (Anchor(X1, Y1) & Near(X1, Y1, X2, Y2) & ~EqualLocations(X1, Y1, X2, Y2)) >> ~Anchor(X2, Y2), weight: 1;
         model.add rule: ~Anchor(X, Y), weight: 2;
+
+        // Frequent Trips
+        model.add rule: (Segment(S) & Anchor(X1, Y1) & Anchor(X2, Y2)
+                                    & StartLocation(S, X1, Y1) & EndLocation(S, X2, Y2))
+                                    >> FrequentTrip(X1, Y1, X2, Y2), weight: 1;
+
+        // TODO: Add time requirements
+        model.add rule: (Segment(S1) & Segment(S2) & Anchor(X1, Y1) & Anchor(X2, Y2)
+                                     & StartLocation(S1, X1, Y1) & EndLocation(S2, X2, Y2)
+                                     & SegmentDay(S1, D) & SegmentDay(S2, D))
+                                     >> FrequentTrip(X1, Y1, X2, Y2)
+        model.add rule:
     }
 
     class ManhattanNear implements ExternalFunction {
