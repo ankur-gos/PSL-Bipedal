@@ -33,6 +33,7 @@ def generate_segments(n):
 def generate_locations(n):
     location1 = (float(random.randint(0, 100)), float(random.randint(0, 100)))
     location2 = (float(random.randint(0, 100)), float(random.randint(0, 100)))
+    print 'Location1: %s, Location2: %s' % (location1, location2)
     with open('start_location_obs.txt', 'w') as f:
         for i in range(0, n):
             val = random.gauss(0, 1)
@@ -77,3 +78,5 @@ def generate_modes(n):
     with open('mode_obs.txt', 'w') as f:
         for i in range(0, n):
             f.write('%d\t%s\n' % (i, random.choice(modes)))
+
+generate()
