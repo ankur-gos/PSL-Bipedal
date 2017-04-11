@@ -61,11 +61,6 @@ public class Bipedal{
         public String dataPath;
         public String outputPath;
 
-        public boolean sqPotentials = true;
-        public Map weightMap = [
-                "Knows":10,
-                "Prior":2
-        ];
         public String[] timesOfDay = [
             "Morning",
             "Afternoon",
@@ -82,8 +77,6 @@ public class Bipedal{
             this.dbPath = cb.getString('experiment.dbpath', '/tmp');
             this.dataPath = cb.getString('experiment.data.path', 'data');
             this.outputPath = cb.getString('experiment.output.outputdir', Paths.get('output', this.experimentName).toString());
-            this.weightMap["Knows"] = cb.getInteger('model.weights.knows', weightMap["Knows"]);
-            this.weightMap["Prior"] = cb.getInteger('model.weights.prior', weightMap["Prior"]);
             this.useFunctionalConstraint = cb.getBoolean('model.constraints.functional', false);
             this.useFunctionalRule = cb.getBoolean('model.rules.functional', false);
         }
@@ -137,18 +130,18 @@ public class Bipedal{
         model.add rule: ~Anchor(X, Y), weight: 2;
 
         // Frequent Trips
-        model.add rule: (Segment(S) & Anchor(X1, Y1) & Anchor(X2, Y2)
-                                    & StartLocation(S, X1, Y1) & EndLocation(S, X2, Y2)) >> FrequentTrip(X1, Y1, X2, Y2), weight: 1;
-
-        // TODO: Add time requirements
-        model.add rule: (Segment(S1) & Segment(S2) & Anchor(X1, Y1) & Anchor(X2, Y2)
-                                     & StartLocation(S1, X1, Y1) & EndLocation(S2, X2, Y2)
-                                     & SegmentDay(S1, D) & SegmentDay(S2, D)) >> FrequentTrip(X1, Y1, X2, Y2), weight: 1;
-        model.add rule: (FrequentTrip(X1, Y1, X2, Y2) & FrequentTrip(X3, Y3, X1, Y1)) >> FrequentTrip(X2, Y2, X3, Y3), weight: 1;
-        model.add rule: (FrequentTrip(X1, Y1, X2, Y2) & FrequentTrip(X3, Y3, X4, Y4) & FrequentTrip(X4, Y4, X1, Y1)) >> FrequentTrip(X2, Y2, X3, Y3), weight: 1;
-        model.add rule: (FrequentTrip(X1, Y1, X2, Y2) & StartLocation(S1, X1, Y1) & EndLocation(S2, X2, Y2)
-                                                      & StartTime(S1, T1) & EndTime(S2, T2)) >> FrequentTripTime(X1, Y1, X2, Y2, T1, T2), weight: 1;
-        model.add rule: (FrequentTrip(X1, Y1, X2, Y2) & StartLocation(S1, X1, Y1) & EndLocation(S2, X2, Y2) & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(X1, Y1, X2, Y2, M), weight: 1;
+//        model.add rule: (Segment(S) & Anchor(X1, Y1) & Anchor(X2, Y2)
+//                                    & StartLocation(S, X1, Y1) & EndLocation(S, X2, Y2)) >> FrequentTrip(X1, Y1, X2, Y2), weight: 1;
+//
+//        // TODO: Add time requirements
+//        model.add rule: (Segment(S1) & Segment(S2) & Anchor(X1, Y1) & Anchor(X2, Y2)
+//                                     & StartLocation(S1, X1, Y1) & EndLocation(S2, X2, Y2)
+//                                     & SegmentDay(S1, D) & SegmentDay(S2, D)) >> FrequentTrip(X1, Y1, X2, Y2), weight: 1;
+//        model.add rule: (FrequentTrip(X1, Y1, X2, Y2) & FrequentTrip(X3, Y3, X1, Y1)) >> FrequentTrip(X2, Y2, X3, Y3), weight: 1;
+//        model.add rule: (FrequentTrip(X1, Y1, X2, Y2) & FrequentTrip(X3, Y3, X4, Y4) & FrequentTrip(X4, Y4, X1, Y1)) >> FrequentTrip(X2, Y2, X3, Y3), weight: 1;
+//        model.add rule: (FrequentTrip(X1, Y1, X2, Y2) & StartLocation(S1, X1, Y1) & EndLocation(S2, X2, Y2)
+//                                                      & StartTime(S1, T1) & EndTime(S2, T2)) >> FrequentTripTime(X1, Y1, X2, Y2, T1, T2), weight: 1;
+//        model.add rule: (FrequentTrip(X1, Y1, X2, Y2) & StartLocation(S1, X1, Y1) & EndLocation(S2, X2, Y2) & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(X1, Y1, X2, Y2, M), weight: 1;
     }
 
     class ManhattanNear implements ExternalFunction {
