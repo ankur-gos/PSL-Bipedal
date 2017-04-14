@@ -314,7 +314,7 @@ public class Bipedal{
         log.info("Starting inference");
 
         Date infStart = new Date();
-        HashSet closed = new HashSet<StandardPredicate>([StartLocation,EndLocation,StartTime,EndTime,Segment,Mode]);
+        HashSet closed = new HashSet<StandardPredicate>([StartLocation,EndLocation,StartTime,EndTime,Segment,Mode, SegmentDay]);
         Database inferDB = ds.getDatabase(targetsPartition, closed, obsPartition);
         MPEInference mpe = new MPEInference(model, inferDB, config.cb);
         FullInferenceResult result = mpe.mpeInference();
