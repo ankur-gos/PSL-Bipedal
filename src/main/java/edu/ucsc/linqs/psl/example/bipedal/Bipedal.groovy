@@ -222,20 +222,61 @@ public class Bipedal{
     }
 
     /*
-     * crossFrequentTrips
-     * Same as crossAnchor, but for frequent trips
+     * getTwoLocationPopMap
+     * Get the set of locations, make a pop map and fill it twice with the locations
      */
-    private void crossFrequentTrips(Partition obsPartition, Partition targetPartition){
+    private Map<Variable, Set<Term>> getTwoLocationPopMap(Partition obsPartition){
         def locations = getLocations(obsPartition);
         Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
         popMap.put(new Variable("LocationX1"), locations[0]);
         popMap.put(new Variable("LocationY1"), locations[1]);
         popMap.put(new Variable("LocationX2"), locations[0]);
         popMap.put(new Variable("LocationY2"), locations[1]);
+        return popMap;
+    }
+
+    /*
+     * crossFrequentTrips
+     * Same as crossAnchor, but for frequent trips, and add the second set of locations
+     */
+    private void crossFrequentTrips(Partition obsPartition, Partition targetPartition){
+        Map<Variable, Set<Term>> popMap = getTwoLocationPopMap(obsPartition);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
         dbPop.populate((FrequentTrip(LocationX1, LocationY1, LocationX2, LocationY2)).getFormula(), popMap);
         targetDb.close();
+    }
+
+    /*
+     * crossFrequentTripModes
+     * Take the two location popmap and add modes to it, then add it to the target partition
+     */
+    private void crossFrequentTripModes(Partition obsPartition, Partition targetPartition){
+        Map<Variable, Set<Term>> popMap = getTwoLocationPopMap(obsPartition);
+        Set<Term> modes = new HashSet<Term>();
+        for (Atom a: modeSet){
+            Term[] arguments = a.getArguments();
+            modes.add(arguments[1]);
+        }
+        popMap.put(new Variable("ModeTerm"), modes);
+        def targetDb = ds.getDatabase(targetPartition);
+        DatabasePopulator dbPop = new DatabasePopulator(targetDb);
+        dbPop.populate((FrequentTripMode(LocationX1, LocationY1, LocationX2, LocationY2, ModeTerm)).getFormula(), popMap);
+        targetDb.close()
+    }
+
+    /*
+     * crossFrequentTripTimes
+     * Same as crossFrequentTripModes but for times
+     */
+    private void crossFrequentTripTimes(Partition obsPartition, Partition targetPartition){
+        Map<Variable, Set<Term>> popMap = getTwoLocationPopMap(obsPartition);
+        Set<Term> times = getTimesSet(obsPartition);
+        popMap.put(new Variable("Time"), times);
+        def targetDb = ds.getDatabase(targetPartition);
+        DatabasePopulator dbPop = new DatabasePopulator(targetDb);
+        dbPop.populate((FrequentTripTime(LocationX1, LocationY1, LocationX2, LocationY2, Time)).getFormula(), popMap);
+        targetDb.close()
     }
 
 
@@ -265,12 +306,10 @@ public class Bipedal{
     }
 
     /*
-     * crossLocationTime
-     * Access the observation partition, and cross the locations with each possible
-     * time of day
+     * getTimesSet
+     * Return a Set consisting of the time terms from StartTime and EndTime
      */
-    private void crossLocationTime(Partition obsPartition, Partition targetPartition){
-        def locations = getLocations(obsPartition);
+    Set<Term> getTimesSet(Partition obsPartition){
         def obsDb = ds.getDatabase(obsPartition);
         Set startTimeSet = Queries.getAllAtoms(obsDb, StartTime);
         Set endTimeSet = Queries.getAllAtoms(obsDb, EndTime);
@@ -281,8 +320,20 @@ public class Bipedal{
         }
         for (Atom a: endTimeSet){
             Term[] arguments = a.getArguments();
-            times.add(arguments[1])
+            times.add(arguments[1]);
         }
+        obsDb.close();
+        return times;
+    }
+
+    /*
+     * crossLocationTime
+     * Access the observation partition, and cross the locations with each possible
+     * time of day
+     */
+    private void crossLocationTime(Partition obsPartition, Partition targetPartition){
+        def locations = getLocations(obsPartition);
+        Set<Term> times = getTimesSet(obsPartition);
         Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
         popMap.put(new Variable("LocationX"), locations[0]);
         popMap.put(new Variable("LocationY"), locations[1]);
@@ -320,6 +371,9 @@ public class Bipedal{
         crossLocationTime(obsPartition, targetsPartition);
         crossLocationMode(obsPartition, targetsPartition);
         crossAnchor(obsPartition, targetsPartition);
+        crossFrequentTrips(obsPartition, targetsPartition);
+        crossFrequentTripModes(obsPartition, targetsPartition);
+        crossFrequentTripTimes(obsPartition, targetsPartition);
 
         inserter = ds.getInserter(Anchor, truthPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, 'anchor_truth.txt').toString());
