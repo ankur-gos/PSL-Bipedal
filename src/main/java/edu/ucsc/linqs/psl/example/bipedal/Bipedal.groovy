@@ -203,24 +203,21 @@ public class Bipedal{
      * Access the observation partition, get the start and end locations and extract them into two
      * hashsets
      */
-    private Tuple getLocations(Partition obsPartition){
+    private Set<Term> getLocations(Partition obsPartition){
         def obsDb = ds.getDatabase(obsPartition);
         Set startLocationSet = Queries.getAllAtoms(obsDb, StartLocation);
         Set endLocationSet = Queries.getAllAtoms(obsDb, EndLocation);
-        Set<Term> locationX = new HashSet<Term>();
-        Set<Term> locationY = new HashSet<Term>();
+        Set<Term> locations = new HashSet<Term>();
         for (Atom a: startLocationSet){
             Term[] arguments = a.getArguments();
-            locationX.add(arguments[1]);
-            locationY.add(arguments[2]);
+            locations.add(arguments[1]);
         }
         for (Atom a: endLocationSet){
             Term[] arguments = a.getArguments();
-            locationX.add(arguments[1]);
-            locationY.add(arguments[2]);
+            locations.add(arguments[1]);
         }
         obsDb.close();
-        return new Tuple(locationX, locationY);
+        return locations;
     }
 
     /*
@@ -231,11 +228,10 @@ public class Bipedal{
         log.info("Started loading anchor into target partition");
         def locations = getLocations(obsPartition);
         Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
-        popMap.put(new Variable("LocationX"), locations[0]);
-        popMap.put(new Variable("LocationY"), locations[1]);
+        popMap.put(new Variable("Location"), locations);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
-        dbPop.populate((Anchor(LocationX, LocationY)).getFormula(), popMap);
+        dbPop.populate((Anchor(Location).getFormula(), popMap);
         targetDb.close();
         log.info("Finished loading anchor into target partition");
     }
@@ -247,10 +243,8 @@ public class Bipedal{
     private Map<Variable, Set<Term>> getTwoLocationPopMap(Partition obsPartition){
         def locations = getLocations(obsPartition);
         Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
-        popMap.put(new Variable("LocationX1"), locations[0]);
-        popMap.put(new Variable("LocationY1"), locations[1]);
-        popMap.put(new Variable("LocationX2"), locations[0]);
-        popMap.put(new Variable("LocationY2"), locations[1]);
+        popMap.put(new Variable("Location1"), locations);
+        popMap.put(new Variable("Location2"), locations);
         return popMap;
     }
 
@@ -263,7 +257,7 @@ public class Bipedal{
         Map<Variable, Set<Term>> popMap = getTwoLocationPopMap(obsPartition);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
-        dbPop.populate((FrequentTrip(LocationX1, LocationY1, LocationX2, LocationY2)).getFormula(), popMap);
+        dbPop.populate((FrequentTrip(Location1, Location2)).getFormula(), popMap);
         Set s = Queries.getAllAtoms(targetDb, FrequentTrip);
         log.info('There are ' + s.size() + ' frequent trips in target partition');
         targetDb.close();
@@ -288,7 +282,7 @@ public class Bipedal{
         popMap.put(new Variable("ModeTerm"), modes);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
-        dbPop.populate((FrequentTripMode(LocationX1, LocationY1, LocationX2, LocationY2, ModeTerm)).getFormula(), popMap);
+        dbPop.populate((FrequentTripMode(Location1, Location2, ModeTerm)).getFormula(), popMap);
         Set s = Queries.getAllAtoms(targetDb, FrequentTripMode);
         log.info('There are ' + s.size() + ' frequent trips + modes in target partition')
         obsDb.close();
@@ -309,7 +303,7 @@ public class Bipedal{
         popMap.put(new Variable("Time2"), times);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
-        dbPop.populate((FrequentTripTime(LocationX1, LocationY1, LocationX2, LocationY2, Time1, Time2)).getFormula(), popMap);
+        dbPop.populate((FrequentTripTime(Location1, Location2, Time1, Time2)).getFormula(), popMap);
         targetDb.close();
         log.info("Finished loading FrequentTripTimes into target partition");
     }
@@ -331,12 +325,11 @@ public class Bipedal{
             modes.add(arguments[1]);
         }
         Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
-        popMap.put(new Variable("LocationX"), locations[0]);
-        popMap.put(new Variable("LocationY"), locations[1]);
+        popMap.put(new Variable("Location"), locations);
         popMap.put(new Variable("ModeTerm"), modes);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
-        dbPop.populate((AnchorMode(LocationX, LocationY, ModeTerm)).getFormula(), popMap);
+        dbPop.populate((AnchorMode(Location, ModeTerm)).getFormula(), popMap);
         obsDb.close();
         targetDb.close()
         log.info("Finished loading LocationMode into target partition");
@@ -373,12 +366,11 @@ public class Bipedal{
         def locations = getLocations(obsPartition);
         Set<Term> times = getTimesSet(obsPartition);
         Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
-        popMap.put(new Variable("LocationX"), locations[0]);
-        popMap.put(new Variable("LocationY"), locations[1]);
+        popMap.put(new Variable("Location"), locations);
         popMap.put(new Variable("Time"), times);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
-        dbPop.populate((AnchorTime(LocationX, LocationY, Time)).getFormula(), popMap);
+        dbPop.populate((AnchorTime(Location, Time)).getFormula(), popMap);
         targetDb.close();
         log.info("Finished loading LocationTime into target partition");
     }
