@@ -247,6 +247,8 @@ public class Bipedal{
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
         dbPop.populate((FrequentTrip(LocationX1, LocationY1, LocationX2, LocationY2)).getFormula(), popMap);
+        Set s = Queries.getAllAtoms(targetDb, FrequentTrip);
+        log.info('There are ' + s.size() + ' frequent trips in target partition');
         targetDb.close();
         log.info("Finished loading FrequentTrips into target partition");
         
@@ -270,6 +272,8 @@ public class Bipedal{
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
         dbPop.populate((FrequentTripMode(LocationX1, LocationY1, LocationX2, LocationY2, ModeTerm)).getFormula(), popMap);
+        Set s = Queries.getAllAtoms(targetDb, FrequentTripMode);
+        log.info('There are ' + s.size() + ' frequent trips + modes in target partition')
         obsDb.close();
         targetDb.close();
         log.info("Finished loading FrequentTripModes into target partition");
@@ -283,8 +287,9 @@ public class Bipedal{
         log.info("Started loading FrequentTripTimes into target partition");
         Map<Variable, Set<Term>> popMap = getTwoLocationPopMap(obsPartition);
         Set<Term> times = getTimesSet(obsPartition);
+        log.info("# Times: " + times.size());
         popMap.put(new Variable("Time1"), times);
-        popMap.put(new Variable("Time2"), times)
+        popMap.put(new Variable("Time2"), times);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
         dbPop.populate((FrequentTripTime(LocationX1, LocationY1, LocationX2, LocationY2, Time1, Time2)).getFormula(), popMap);
@@ -390,9 +395,9 @@ public class Bipedal{
         crossLocationTime(obsPartition, targetsPartition);
         crossLocationMode(obsPartition, targetsPartition);
         crossAnchor(obsPartition, targetsPartition);
+        crossFrequentTripTimes(obsPartition, targetsPartition);
         crossFrequentTrips(obsPartition, targetsPartition);
         crossFrequentTripModes(obsPartition, targetsPartition);
-        crossFrequentTripTimes(obsPartition, targetsPartition);
 
         inserter = ds.getInserter(Anchor, truthPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, 'anchor_truth.txt').toString());
