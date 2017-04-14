@@ -211,6 +211,7 @@ public class Bipedal{
      * Fill the target partition with the cross product of locations
      */
     private void crossAnchor(Partition obsPartition, Partition targetPartition){
+        log.info("Started loading anchor into target partition");
         def locations = getLocations(obsPartition);
         Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
         popMap.put(new Variable("LocationX"), locations[0]);
@@ -219,6 +220,7 @@ public class Bipedal{
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
         dbPop.populate((Anchor(LocationX, LocationY)).getFormula(), popMap);
         targetDb.close();
+        log.info("Finished loading anchor into target partition");
     }
 
     /*
@@ -240,11 +242,14 @@ public class Bipedal{
      * Same as crossAnchor, but for frequent trips, and add the second set of locations
      */
     private void crossFrequentTrips(Partition obsPartition, Partition targetPartition){
+        log.info("Started loading FrequentTrips into target partition");
         Map<Variable, Set<Term>> popMap = getTwoLocationPopMap(obsPartition);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
         dbPop.populate((FrequentTrip(LocationX1, LocationY1, LocationX2, LocationY2)).getFormula(), popMap);
         targetDb.close();
+        log.info("Finished loading FrequentTrips into target partition");
+        
     }
 
     /*
@@ -252,8 +257,11 @@ public class Bipedal{
      * Take the two location popmap and add modes to it, then add it to the target partition
      */
     private void crossFrequentTripModes(Partition obsPartition, Partition targetPartition){
+        log.info("Started loading FrequentTripsModes into target partition");
         Map<Variable, Set<Term>> popMap = getTwoLocationPopMap(obsPartition);
         Set<Term> modes = new HashSet<Term>();
+        def obsDb = ds.getDatabase(obsPartition);
+        Set modeSet = Queries.getAllAtoms(obsDb, Mode)
         for (Atom a: modeSet){
             Term[] arguments = a.getArguments();
             modes.add(arguments[1]);
@@ -262,7 +270,9 @@ public class Bipedal{
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
         dbPop.populate((FrequentTripMode(LocationX1, LocationY1, LocationX2, LocationY2, ModeTerm)).getFormula(), popMap);
-        targetDb.close()
+        obsDb.close();
+        targetDb.close();
+        log.info("Finished loading FrequentTripModes into target partition");
     }
 
     /*
@@ -270,13 +280,16 @@ public class Bipedal{
      * Same as crossFrequentTripModes but for times
      */
     private void crossFrequentTripTimes(Partition obsPartition, Partition targetPartition){
+        log.info("Started loading FrequentTripTimes into target partition");
         Map<Variable, Set<Term>> popMap = getTwoLocationPopMap(obsPartition);
         Set<Term> times = getTimesSet(obsPartition);
-        popMap.put(new Variable("Time"), times);
+        popMap.put(new Variable("Time1"), times);
+        popMap.put(new Variable("Time2"), times)
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
-        dbPop.populate((FrequentTripTime(LocationX1, LocationY1, LocationX2, LocationY2, Time)).getFormula(), popMap);
-        targetDb.close()
+        dbPop.populate((FrequentTripTime(LocationX1, LocationY1, LocationX2, LocationY2, Time1, Time2)).getFormula(), popMap);
+        targetDb.close();
+        log.info("Finished loading FrequentTripTimes into target partition");
     }
 
 
@@ -286,6 +299,7 @@ public class Bipedal{
      * mode
      */
     private void crossLocationMode(Partition obsPartition, Partition targetPartition){
+        log.info("Started loading LocationMode into target partition");
         def locations = getLocations(obsPartition);
         def obsDb = ds.getDatabase(obsPartition);
         Set modeSet = Queries.getAllAtoms(obsDb, Mode);
@@ -303,6 +317,7 @@ public class Bipedal{
         dbPop.populate((AnchorMode(LocationX, LocationY, ModeTerm)).getFormula(), popMap);
         obsDb.close();
         targetDb.close()
+        log.info("Finished loading LocationMode into target partition");
     }
 
     /*
@@ -332,6 +347,7 @@ public class Bipedal{
      * time of day
      */
     private void crossLocationTime(Partition obsPartition, Partition targetPartition){
+        log.info("Started loading LocationTimes into target partition");
         def locations = getLocations(obsPartition);
         Set<Term> times = getTimesSet(obsPartition);
         Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
@@ -341,8 +357,8 @@ public class Bipedal{
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
         dbPop.populate((AnchorTime(LocationX, LocationY, Time)).getFormula(), popMap);
-        obsDb.close();
         targetDb.close();
+        log.info("Finished loading LocationTime into target partition");
     }
 
     private void loadData(Partition obsPartition, Partition targetsPartition, Partition truthPartition) {
@@ -365,7 +381,10 @@ public class Bipedal{
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "end_time_obs.txt").toString());
 
         inserter = ds.getInserter(Mode, obsPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "mode_obs.txt").toString())
+        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "mode_obs.txt").toString());
+
+        inserter = ds.getInserter(SegmentDay, obsPartition);
+        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "segment_days_obs.txt").toString());
 
         // Run the cross functions to fill the targets partition
         crossLocationTime(obsPartition, targetsPartition);
@@ -404,11 +423,11 @@ public class Bipedal{
 
         // Temporarily redirect stdout.
         PrintStream stdout = System.out;
-        PrintStream ps = new PrintStream(new File(Paths.get(config.outputPath, "anchor_infer.txt").toString()));
+        PrintStream ps = new PrintStream(new File(Paths.get(config.outputPath, "frequents_infer.txt").toString()));
         System.setOut(ps);
 
         AtomPrintStream aps = new DefaultAtomPrintStream();
-        Set anchorSet = Queries.getAllAtoms(resultsDB, Anchor);
+        Set anchorSet = Queries.getAllAtoms(resultsDB, FrequentTrip);
         for (Atom a : anchorSet) {
             aps.printAtom(a);
         }
