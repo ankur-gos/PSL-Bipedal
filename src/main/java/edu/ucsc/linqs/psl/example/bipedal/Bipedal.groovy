@@ -35,6 +35,7 @@ import edu.umd.cs.psl.model.argument.GroundTerm;
 import edu.umd.cs.psl.model.argument.Term;
 import java.util.HashSet;
 import edu.umd.cs.psl.model.argument.Variable;
+import java.lang.Double;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,20 +93,20 @@ public class Bipedal{
 
     // Predicates
     private void definePredicates(){
-        model.add predicate: "Segment", types: [ArgumentType.UniqueID]
-        model.add predicate: "StartLocation", types: [ArgumentType.UniqueID, ArgumentType.Double, ArgumentType.Double];
-        model.add predicate: "EndLocation", types: [ArgumentType.UniqueID, ArgumentType.Double, ArgumentType.Double];
+        model.add predicate: "Segment", types: [ArgumentType.UniqueID
+        model.add predicate: "StartLocation", types: [ArgumentType.UniqueID, ArgumentType.String];
+        model.add predicate: "EndLocation", types: [ArgumentType.UniqueID, ArgumentType.String];
         model.add predicate: "StartTime", types: [ArgumentType.UniqueID, ArgumentType.String];
         model.add predicate: "EndTime", types: [ArgumentType.UniqueID, ArgumentType.String];
         model.add predicate: "Mode", types: [ArgumentType.UniqueID, ArgumentType.String];
-        model.add predicate: "AnchorTime", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.String];
-        model.add predicate: "AnchorMode", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.String];
-        model.add predicate: "Anchor", types: [ArgumentType.Double, ArgumentType.Double];
+        model.add predicate: "AnchorTime", types: [ArgumentType.String, ArgumentType.String];
+        model.add predicate: "AnchorMode", types: [ArgumentType.String, ArgumentType.String];
+        model.add predicate: "Anchor", types: [ArgumentType.String];
 
         // Frequent trips
-        model.add predicate: "FrequentTrip", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double];
-        model.add predicate: "FrequentTripTime", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.String, ArgumentType.String]
-        model.add predicate: "FrequentTripMode", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.String]
+        model.add predicate: "FrequentTrip", types: [ArgumentType.String, ArgumentType.String];
+        model.add predicate: "FrequentTripTime", types: [ArgumentType.String, ArgumentType.String, ArgumentType.String, ArgumentType.String]
+        model.add predicate: "FrequentTripMode", types: [ArgumentType.String, ArgumentType.String, ArgumentType.String]
         model.add predicate: "SegmentDay", types: [ArgumentType.UniqueID, ArgumentType.String]
     }
 
@@ -118,47 +119,60 @@ public class Bipedal{
     private void defineRules(){
         log.info("Defining model rules");
         // Anchor locations
-        model.add rule: (Segment(S) & StartLocation(S, X, Y) & StartTime(S, T)) >> AnchorTime(X, Y, T),
+        model.add rule: (Segment(S) & StartLocation(S, L) & StartTime(S, T)) >> AnchorTime(L, T),
                   weight: 1;
-        model.add rule: (Segment(S) & EndLocation(S, X, Y) & EndTime(S, T)) >> AnchorTime(X, Y, T), weight: 1;
-        model.add rule: (Segment(S) & StartLocation(S, X, Y) & Mode(S, M)) >> AnchorMode(X, Y, M), weight: 1;
-        model.add rule: (Segment(S) & EndLocation(S, X, Y) & Mode(S, M)) >> AnchorMode(X, Y, M), weight: 1;
-        model.add rule: (AnchorMode(X, Y, M)) >> Anchor(X, Y), weight: 3;
-        model.add rule: (AnchorTime(X, Y, T)) >> Anchor(X, Y), weight: 3;
-        model.add rule: (AnchorTime(X1, Y1, T) & AnchorTime(X2, Y2, T) & ~EqualLocations(X1, Y1, X2, Y2)) >> ~Anchor(X2, Y2), weight: 1;
-        model.add rule: (Anchor(X1, Y1) & Near(X1, Y1, X2, Y2) & ~EqualLocations(X1, Y1, X2, Y2)) >> ~Anchor(X2, Y2), weight: 1;
-        model.add rule: ~Anchor(X, Y), weight: 2;
+        model.add rule: (Segment(S) & EndLocation(S, L) & EndTime(S, T)) >> AnchorTime(L, T), weight: 1;
+        model.add rule: (Segment(S) & StartLocation(S, L) & Mode(S, M)) >> AnchorMode(L, M), weight: 1;
+        model.add rule: (Segment(S) & EndLocation(S, L) & Mode(S, M)) >> AnchorMode(L, M), weight: 1;
+        model.add rule: (AnchorMode(L, M)) >> Anchor(L), weight: 3;
+        model.add rule: (AnchorTime(L, T)) >> Anchor(L), weight: 3;
+        model.add rule: (AnchorTime(L1, T) & AnchorTime(L2, T) & ~EqualLocations(L1, L2)) >> ~Anchor(L2), weight: 1;
+        model.add rule: (Anchor(L1) & Near(L1, L2) & ~EqualLocations(L1, L2)) >> ~Anchor(L2), weight: 1;
+        model.add rule: ~Anchor(L), weight: 2;
 
         // Frequent Trips
-       model.add rule: (Segment(S) & Anchor(X1, Y1) & Anchor(X2, Y2)
-                                   & StartLocation(S, X1, Y1) & EndLocation(S, X2, Y2)) >> FrequentTrip(X1, Y1, X2, Y2), weight: 1;
+       model.add rule: (Segment(S) & Anchor(L1) & Anchor(L2)
+                                   & StartLocation(S, L1) & EndLocation(S, L2)) >> FrequentTrip(L1, L2), weight: 1;
 
        // TODO: Add time requirements
-       model.add rule: (Segment(S1) & Segment(S2) & Anchor(X1, Y1) & Anchor(X2, Y2)
-                                    & StartLocation(S1, X1, Y1) & EndLocation(S2, X2, Y2)
-                                    & SegmentDay(S1, D) & SegmentDay(S2, D)) >> FrequentTrip(X1, Y1, X2, Y2), weight: 1;
-       model.add rule: (FrequentTrip(X1, Y1, X2, Y2) & FrequentTrip(X3, Y3, X1, Y1)) >> FrequentTrip(X2, Y2, X3, Y3), weight: 1;
-       model.add rule: (FrequentTrip(X1, Y1, X2, Y2) & FrequentTrip(X3, Y3, X4, Y4) & FrequentTrip(X4, Y4, X1, Y1)) >> FrequentTrip(X2, Y2, X3, Y3), weight: 1;
-       model.add rule: (FrequentTrip(X1, Y1, X2, Y2) & StartLocation(S1, X1, Y1) & EndLocation(S2, X2, Y2)
-                                                     & StartTime(S1, T1) & EndTime(S2, T2)) >> FrequentTripTime(X1, Y1, X2, Y2, T1, T2), weight: 1;
-       model.add rule: (FrequentTrip(X1, Y1, X2, Y2) & StartLocation(S1, X1, Y1) & EndLocation(S2, X2, Y2) & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(X1, Y1, X2, Y2, M), weight: 1;
+       model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2)
+                                    & StartLocation(S1, L1) & EndLocation(S2, L2)
+                                    & SegmentDay(S1, D) & SegmentDay(S2, D)) >> FrequentTrip(L1, L2), weight: 1;
+       model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L1)) >> FrequentTrip(L2, L3), weight: 1;
+       model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L4) & FrequentTrip(L4, L1)) >> FrequentTrip(L2, L3), weight: 1;
+       model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2)
+                                                     & StartTime(S1, T1) & EndTime(S2, T2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 1;
+       model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2) & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(L1, L2, M), weight: 1;
+    }
+
+    public double[] deserializeLocations(String s1, String s2){
+        String[] split1 = s1.split();
+        String[] split2 = s2.split();
+        double x1 = Double.parseDouble(split1[0]);
+        double y1 = Double.parseDouble(split1[1]);
+        double x2 = Double.parseDouble(split2[0]);
+        double y2 = Double.parseDouble(split2[1]);
+        return [x1, y1, x2, y2];
     }
 
     class ManhattanNear implements ExternalFunction {
 
         @Override
         public int getArity(){
-            return 4;
+            return 2;
         }
 
         @Override
         public ArgumentType[] getArgumentTypes(){
-            return [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double];
+            return [ArgumentType.String, ArgumentType.String];
         }
 
         @Override
         public double getValue(ReadOnlyDatabase db, GroundTerm... args){
-            double mdist = (args[0].getValue() - args[2].getValue()).abs() + (args[1].getValue() - args[3].getValue()).abs();
+            String s1 = args[0].getValue();
+            String s2 = args[1].getValue();
+            double[] values = deserializeLocations(s1, s2);
+            double mdist = (values[0] - values[2]).abs() + (values[1] - values[3]).abs();
             return mdist < 5.0 ? 1.0 : 0.0;
         }
     }
@@ -167,17 +181,20 @@ public class Bipedal{
 
         @Override
         public int getArity(){
-            return 4;
+            return 2;
         }
 
         @Override
         public ArgumentType[] getArgumentTypes(){
-            return [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double];
+            return [ArgumentType.String, ArgumentType.String];
         }
 
         @Override
         public double getValue(ReadOnlyDatabase db, GroundTerm... args){
-            return args[0].getValue() == args[2].getValue() && args[1].getValue() == args[3].getValue() ? 1.0 : 0.0;
+            String s1 = args[0].getValue();
+            String s2 = args[1].getValue();
+            double[] values = deserializeLocations(s1, s2);
+            return values[0] == values[2] && values[1] == values[3] ? 1.0 : 0.0;
         }
     }
 
