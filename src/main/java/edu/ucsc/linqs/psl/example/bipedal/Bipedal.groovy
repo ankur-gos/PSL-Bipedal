@@ -218,9 +218,26 @@ public class Bipedal{
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
         dbPop.populate((Anchor(LocationX, LocationY)).getFormula(), popMap);
-        AtomPrintStream aps = new DefaultAtomPrintStream();
         targetDb.close();
     }
+
+    /*
+     * crossFrequentTrips
+     * Same as crossAnchor, but for frequent trips
+     */
+    private void crossFrequentTrips(Partition obsPartition, Partition targetPartition){
+        def locations = getLocations(obsPartition);
+        Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
+        popMap.put(new Variable("LocationX1"), locations[0]);
+        popMap.put(new Variable("LocationY1"), locations[1]);
+        popMap.put(new Variable("LocationX2"), locations[0]);
+        popMap.put(new Variable("LocationY2"), locations[1]);
+        def targetDb = ds.getDatabase(targetPartition);
+        DatabasePopulator dbPop = new DatabasePopulator(targetDb);
+        dbPop.populate((FrequentTrip(LocationX1, LocationY1, LocationX2, LocationY2)).getFormula(), popMap);
+        targetDb.close();
+    }
+
 
     /*
      * crossLocationMode
@@ -243,7 +260,6 @@ public class Bipedal{
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
         dbPop.populate((AnchorMode(LocationX, LocationY, ModeTerm)).getFormula(), popMap);
-        AtomPrintStream aps = new DefaultAtomPrintStream();
         obsDb.close();
         targetDb.close()
     }
