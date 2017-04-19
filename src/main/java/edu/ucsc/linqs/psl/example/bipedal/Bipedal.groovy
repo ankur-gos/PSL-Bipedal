@@ -93,7 +93,7 @@ public class Bipedal{
 
     // Predicates
     private void definePredicates(){
-        model.add predicate: "Segment", types: [ArgumentType.UniqueID
+        model.add predicate: "Segment", types: [ArgumentType.UniqueID];
         model.add predicate: "StartLocation", types: [ArgumentType.UniqueID, ArgumentType.String];
         model.add predicate: "EndLocation", types: [ArgumentType.UniqueID, ArgumentType.String];
         model.add predicate: "StartTime", types: [ArgumentType.UniqueID, ArgumentType.String];
@@ -128,7 +128,7 @@ public class Bipedal{
         model.add rule: (AnchorTime(L, T)) >> Anchor(L), weight: 3;
         model.add rule: (AnchorTime(L1, T) & AnchorTime(L2, T) & ~EqualLocations(L1, L2)) >> ~Anchor(L2), weight: 1;
         model.add rule: (Anchor(L1) & Near(L1, L2) & ~EqualLocations(L1, L2)) >> ~Anchor(L2), weight: 1;
-        model.add rule: ~Anchor(L), weight: 2;
+        model.add rule: ~Anchor(L), weight: 1;
 
         // Frequent Trips
        model.add rule: (Segment(S) & Anchor(L1) & Anchor(L2)
@@ -146,8 +146,8 @@ public class Bipedal{
     }
 
     public double[] deserializeLocations(String s1, String s2){
-        String[] split1 = s1.split();
-        String[] split2 = s2.split();
+        String[] split1 = s1.split("-");
+        String[] split2 = s2.split("-");
         double x1 = Double.parseDouble(split1[0]);
         double y1 = Double.parseDouble(split1[1]);
         double x2 = Double.parseDouble(split2[0]);
@@ -173,7 +173,7 @@ public class Bipedal{
             String s2 = args[1].getValue();
             double[] values = deserializeLocations(s1, s2);
             double mdist = (values[0] - values[2]).abs() + (values[1] - values[3]).abs();
-            return mdist < 5.0 ? 1.0 : 0.0;
+            return mdist < 20.0 ? 1.0 : 0.0;
         }
     }
 
@@ -231,7 +231,7 @@ public class Bipedal{
         popMap.put(new Variable("Location"), locations);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
-        dbPop.populate((Anchor(Location).getFormula(), popMap);
+        dbPop.populate((Anchor(Location)).getFormula(), popMap);
         targetDb.close();
         log.info("Finished loading anchor into target partition");
     }
@@ -441,7 +441,7 @@ public class Bipedal{
         System.setOut(ps);
 
         AtomPrintStream aps = new DefaultAtomPrintStream();
-        Set anchorSet = Queries.getAllAtoms(resultsDB, FrequentTrip);
+        Set anchorSet = Queries.getAllAtoms(resultsDB, Anchor);
         for (Atom a : anchorSet) {
             aps.printAtom(a);
         }
