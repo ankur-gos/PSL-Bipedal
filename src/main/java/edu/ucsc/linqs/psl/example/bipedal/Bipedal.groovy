@@ -114,6 +114,7 @@ public class Bipedal{
     private void defineFunctions(){
         model.add function: "EqualLocations", implementation: new LocationComparison();
         model.add function: "Near", implementation: new ManhattanNear();
+        model.add function: "LeftOf", implementation: new LeftSort();
     }
 
     private void defineRules(){
@@ -124,19 +125,19 @@ public class Bipedal{
         model.add rule: (Segment(S) & EndLocation(S, L) & EndTime(S, T)) >> AnchorTime(L, T), weight: 1;
         model.add rule: (Segment(S) & StartLocation(S, L) & Mode(S, M)) >> AnchorMode(L, M), weight: 1;
         model.add rule: (Segment(S) & EndLocation(S, L) & Mode(S, M)) >> AnchorMode(L, M), weight: 1;
-        model.add rule: (AnchorMode(L, M)) >> Anchor(L), weight: 3;
-        model.add rule: (AnchorTime(L, T)) >> Anchor(L), weight: 3;
+        model.add rule: (AnchorMode(L, M)) >> Anchor(L), weight: 1;
+        model.add rule: (AnchorTime(L, T)) >> Anchor(L), weight: 1;
         model.add rule: (AnchorTime(L1, T) & AnchorTime(L2, T) & ~EqualLocations(L1, L2)) >> ~Anchor(L2), weight: 1;
-        model.add rule: (Anchor(L1) & Near(L1, L2) & ~EqualLocations(L1, L2)) >> ~Anchor(L2), weight: 1;
+        model.add rule: (Anchor(L1) & Near(L1, L2) & ~EqualLocations(L1, L2) & LeftOf(L1, L2)) >> ~Anchor(L2), weight: 5;
         model.add rule: ~Anchor(L), weight: 1;
 
         // Frequent Trips
-       model.add rule: (Segment(S) & Anchor(L1) & Anchor(L2)
-                                   & StartLocation(S, L1) & EndLocation(S, L2)) >> FrequentTrip(L1, L2), weight: 1;
+       model.add rule: (Segment(S) & Anchor(L1) & Anchor(L2) & Near(L2, L3)
+                                   & StartLocation(S, L1) & EndLocation(S, L3)) >> FrequentTrip(L1, L2), weight: 1;
 
        // TODO: Add time requirements
-       model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2)
-                                    & StartLocation(S1, L1) & EndLocation(S2, L2)
+       model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2) & Near(L2, L3)
+                                    & StartLocation(S1, L1) & EndLocation(S2, L3)
                                     & SegmentDay(S1, D) & SegmentDay(S2, D)) >> FrequentTrip(L1, L2), weight: 1;
        model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L1)) >> FrequentTrip(L2, L3), weight: 1;
        model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L4) & FrequentTrip(L4, L1)) >> FrequentTrip(L2, L3), weight: 1;
@@ -173,7 +174,8 @@ public class Bipedal{
             String s2 = args[1].getValue();
             double[] values = deserializeLocations(s1, s2);
             double mdist = (values[0] - values[2]).abs() + (values[1] - values[3]).abs();
-            return mdist < 20.0 ? 1.0 : 0.0;
+            // TODO: distance as decaying function
+            return mdist < 10.0 ? 1.0 : 0.0;
         }
     }
 
@@ -195,6 +197,29 @@ public class Bipedal{
             String s2 = args[1].getValue();
             double[] values = deserializeLocations(s1, s2);
             return values[0] == values[2] && values[1] == values[3] ? 1.0 : 0.0;
+        }
+    }
+
+    class LeftSort implements ExternalFunction{
+        @Override
+        public int getArity(){
+            return 2;
+        }
+
+        @Override
+        public ArgumentType[] getArgumentTypes(){
+            return [ArgumentType.String, ArgumentType.String];
+        }
+
+        @Override
+        public double getValue(ReadOnlyDatabase db, GroundTerm... args){
+            String s1 = args[0].getValue();
+            String s2 = args[1].getValue();
+            double[] values = deserializeLocations(s1, s2);
+            log.info(Double.toString(values[0]));
+            log.info(Double.toString(values[2]));
+            log.info('------------------------')
+            return values[0] - values[2];
         }
     }
 
@@ -408,8 +433,8 @@ public class Bipedal{
         crossFrequentTrips(obsPartition, targetsPartition);
         crossFrequentTripModes(obsPartition, targetsPartition);
 
-        inserter = ds.getInserter(Anchor, truthPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, 'anchor_truth.txt').toString());
+        // inserter = ds.getInserter(Anchor, truthPartition);
+        // InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, 'anchor_truth.txt').toString());
     }
 
     // Run inference
