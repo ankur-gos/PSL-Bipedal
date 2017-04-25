@@ -1,4 +1,0 @@
-0.0	0.0	Morning
-10.0	10.0	Morning
-20.0	20.0	Morning
-15.0	10.0	Morning

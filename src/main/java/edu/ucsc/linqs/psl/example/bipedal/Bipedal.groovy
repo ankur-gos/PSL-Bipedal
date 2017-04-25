@@ -35,6 +35,7 @@ import edu.umd.cs.psl.model.argument.GroundTerm;
 import edu.umd.cs.psl.model.argument.Term;
 import java.util.HashSet;
 import edu.umd.cs.psl.model.argument.Variable;
+import java.lang.Double;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,20 +93,20 @@ public class Bipedal{
 
     // Predicates
     private void definePredicates(){
-        model.add predicate: "Segment", types: [ArgumentType.UniqueID]
-        model.add predicate: "StartLocation", types: [ArgumentType.UniqueID, ArgumentType.Double, ArgumentType.Double];
-        model.add predicate: "EndLocation", types: [ArgumentType.UniqueID, ArgumentType.Double, ArgumentType.Double];
+        model.add predicate: "Segment", types: [ArgumentType.UniqueID];
+        model.add predicate: "StartLocation", types: [ArgumentType.UniqueID, ArgumentType.String];
+        model.add predicate: "EndLocation", types: [ArgumentType.UniqueID, ArgumentType.String];
         model.add predicate: "StartTime", types: [ArgumentType.UniqueID, ArgumentType.String];
         model.add predicate: "EndTime", types: [ArgumentType.UniqueID, ArgumentType.String];
         model.add predicate: "Mode", types: [ArgumentType.UniqueID, ArgumentType.String];
-        model.add predicate: "AnchorTime", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.String];
-        model.add predicate: "AnchorMode", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.String];
-        model.add predicate: "Anchor", types: [ArgumentType.Double, ArgumentType.Double];
+        model.add predicate: "AnchorTime", types: [ArgumentType.String, ArgumentType.String];
+        model.add predicate: "AnchorMode", types: [ArgumentType.String, ArgumentType.String];
+        model.add predicate: "Anchor", types: [ArgumentType.String];
 
         // Frequent trips
-        model.add predicate: "FrequentTrip", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double];
-        model.add predicate: "FrequentTripTime", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.String, ArgumentType.String]
-        model.add predicate: "FrequentTripMode", types: [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.String]
+        model.add predicate: "FrequentTrip", types: [ArgumentType.String, ArgumentType.String];
+        model.add predicate: "FrequentTripTime", types: [ArgumentType.String, ArgumentType.String, ArgumentType.String, ArgumentType.String]
+        model.add predicate: "FrequentTripMode", types: [ArgumentType.String, ArgumentType.String, ArgumentType.String]
         model.add predicate: "SegmentDay", types: [ArgumentType.UniqueID, ArgumentType.String]
     }
 
@@ -113,53 +114,68 @@ public class Bipedal{
     private void defineFunctions(){
         model.add function: "EqualLocations", implementation: new LocationComparison();
         model.add function: "Near", implementation: new ManhattanNear();
+        model.add function: "LeftOf", implementation: new LeftSort();
     }
 
     private void defineRules(){
         log.info("Defining model rules");
         // Anchor locations
-        model.add rule: (Segment(S) & StartLocation(S, X, Y) & StartTime(S, T)) >> AnchorTime(X, Y, T),
+        model.add rule: (Segment(S) & StartLocation(S, L) & StartTime(S, T)) >> AnchorTime(L, T),
                   weight: 1;
-        model.add rule: (Segment(S) & EndLocation(S, X, Y) & EndTime(S, T)) >> AnchorTime(X, Y, T), weight: 1;
-        model.add rule: (Segment(S) & StartLocation(S, X, Y) & Mode(S, M)) >> AnchorMode(X, Y, M), weight: 1;
-        model.add rule: (Segment(S) & EndLocation(S, X, Y) & Mode(S, M)) >> AnchorMode(X, Y, M), weight: 1;
-        model.add rule: (AnchorMode(X, Y, M)) >> Anchor(X, Y), weight: 3;
-        model.add rule: (AnchorTime(X, Y, T)) >> Anchor(X, Y), weight: 3;
-        model.add rule: (AnchorTime(X1, Y1, T) & AnchorTime(X2, Y2, T) & ~EqualLocations(X1, Y1, X2, Y2)) >> ~Anchor(X2, Y2), weight: 1;
-        model.add rule: (Anchor(X1, Y1) & Near(X1, Y1, X2, Y2) & ~EqualLocations(X1, Y1, X2, Y2)) >> ~Anchor(X2, Y2), weight: 1;
-        model.add rule: ~Anchor(X, Y), weight: 2;
+        model.add rule: (Segment(S) & EndLocation(S, L) & EndTime(S, T)) >> AnchorTime(L, T), weight: 1;
+        model.add rule: (Segment(S) & StartLocation(S, L) & Mode(S, M)) >> AnchorMode(L, M), weight: 1;
+        model.add rule: (Segment(S) & EndLocation(S, L) & Mode(S, M)) >> AnchorMode(L, M), weight: 1;
+        model.add rule: (AnchorMode(L, M)) >> Anchor(L), weight: 1;
+        model.add rule: (AnchorTime(L, T)) >> Anchor(L), weight: 1;
+        model.add rule: (AnchorTime(L1, T) & AnchorTime(L2, T) & ~EqualLocations(L1, L2)) >> ~Anchor(L2), weight: 1;
+        model.add rule: (Anchor(L1) & Near(L1, L2) & ~EqualLocations(L1, L2) & LeftOf(L1, L2)) >> ~Anchor(L2), weight: 5;
+        model.add rule: ~Anchor(L), weight: 1;
 
         // Frequent Trips
-       model.add rule: (Segment(S) & Anchor(X1, Y1) & Anchor(X2, Y2)
-                                   & StartLocation(S, X1, Y1) & EndLocation(S, X2, Y2)) >> FrequentTrip(X1, Y1, X2, Y2), weight: 1;
+       model.add rule: (Segment(S) & Anchor(L1) & Anchor(L2) & Near(L2, L3)
+                                   & StartLocation(S, L1) & EndLocation(S, L3)) >> FrequentTrip(L1, L2), weight: 1;
 
        // TODO: Add time requirements
-       model.add rule: (Segment(S1) & Segment(S2) & Anchor(X1, Y1) & Anchor(X2, Y2)
-                                    & StartLocation(S1, X1, Y1) & EndLocation(S2, X2, Y2)
-                                    & SegmentDay(S1, D) & SegmentDay(S2, D)) >> FrequentTrip(X1, Y1, X2, Y2), weight: 1;
-       model.add rule: (FrequentTrip(X1, Y1, X2, Y2) & FrequentTrip(X3, Y3, X1, Y1)) >> FrequentTrip(X2, Y2, X3, Y3), weight: 1;
-       model.add rule: (FrequentTrip(X1, Y1, X2, Y2) & FrequentTrip(X3, Y3, X4, Y4) & FrequentTrip(X4, Y4, X1, Y1)) >> FrequentTrip(X2, Y2, X3, Y3), weight: 1;
-       model.add rule: (FrequentTrip(X1, Y1, X2, Y2) & StartLocation(S1, X1, Y1) & EndLocation(S2, X2, Y2)
-                                                     & StartTime(S1, T1) & EndTime(S2, T2)) >> FrequentTripTime(X1, Y1, X2, Y2, T1, T2), weight: 1;
-       model.add rule: (FrequentTrip(X1, Y1, X2, Y2) & StartLocation(S1, X1, Y1) & EndLocation(S2, X2, Y2) & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(X1, Y1, X2, Y2, M), weight: 1;
+       model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2) & Near(L2, L3)
+                                    & StartLocation(S1, L1) & EndLocation(S2, L3)
+                                    & SegmentDay(S1, D) & SegmentDay(S2, D)) >> FrequentTrip(L1, L2), weight: 1;
+       model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L1)) >> FrequentTrip(L2, L3), weight: 1;
+       model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L4) & FrequentTrip(L4, L1)) >> FrequentTrip(L2, L3), weight: 1;
+       model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2)
+                                                     & StartTime(S1, T1) & EndTime(S2, T2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 1;
+       model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2) & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(L1, L2, M), weight: 1;
+    }
+
+    public double[] deserializeLocations(String s1, String s2){
+        String[] split1 = s1.split("-");
+        String[] split2 = s2.split("-");
+        double x1 = Double.parseDouble(split1[0]);
+        double y1 = Double.parseDouble(split1[1]);
+        double x2 = Double.parseDouble(split2[0]);
+        double y2 = Double.parseDouble(split2[1]);
+        return [x1, y1, x2, y2];
     }
 
     class ManhattanNear implements ExternalFunction {
 
         @Override
         public int getArity(){
-            return 4;
+            return 2;
         }
 
         @Override
         public ArgumentType[] getArgumentTypes(){
-            return [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double];
+            return [ArgumentType.String, ArgumentType.String];
         }
 
         @Override
         public double getValue(ReadOnlyDatabase db, GroundTerm... args){
-            double mdist = (args[0].getValue() - args[2].getValue()).abs() + (args[1].getValue() - args[3].getValue()).abs();
-            return mdist < 5.0 ? 1.0 : 0.0;
+            String s1 = args[0].getValue();
+            String s2 = args[1].getValue();
+            double[] values = deserializeLocations(s1, s2);
+            double mdist = (values[0] - values[2]).abs() + (values[1] - values[3]).abs();
+            // TODO: distance as decaying function
+            return mdist < 10.0 ? 1.0 : 0.0;
         }
     }
 
@@ -167,17 +183,43 @@ public class Bipedal{
 
         @Override
         public int getArity(){
-            return 4;
+            return 2;
         }
 
         @Override
         public ArgumentType[] getArgumentTypes(){
-            return [ArgumentType.Double, ArgumentType.Double, ArgumentType.Double, ArgumentType.Double];
+            return [ArgumentType.String, ArgumentType.String];
         }
 
         @Override
         public double getValue(ReadOnlyDatabase db, GroundTerm... args){
-            return args[0].getValue() == args[2].getValue() && args[1].getValue() == args[3].getValue() ? 1.0 : 0.0;
+            String s1 = args[0].getValue();
+            String s2 = args[1].getValue();
+            double[] values = deserializeLocations(s1, s2);
+            return values[0] == values[2] && values[1] == values[3] ? 1.0 : 0.0;
+        }
+    }
+
+    class LeftSort implements ExternalFunction{
+        @Override
+        public int getArity(){
+            return 2;
+        }
+
+        @Override
+        public ArgumentType[] getArgumentTypes(){
+            return [ArgumentType.String, ArgumentType.String];
+        }
+
+        @Override
+        public double getValue(ReadOnlyDatabase db, GroundTerm... args){
+            String s1 = args[0].getValue();
+            String s2 = args[1].getValue();
+            double[] values = deserializeLocations(s1, s2);
+            log.info(Double.toString(values[0]));
+            log.info(Double.toString(values[2]));
+            log.info('------------------------')
+            return values[0] - values[2];
         }
     }
 
@@ -186,24 +228,21 @@ public class Bipedal{
      * Access the observation partition, get the start and end locations and extract them into two
      * hashsets
      */
-    private Tuple getLocations(Partition obsPartition){
+    private Set<Term> getLocations(Partition obsPartition){
         def obsDb = ds.getDatabase(obsPartition);
         Set startLocationSet = Queries.getAllAtoms(obsDb, StartLocation);
         Set endLocationSet = Queries.getAllAtoms(obsDb, EndLocation);
-        Set<Term> locationX = new HashSet<Term>();
-        Set<Term> locationY = new HashSet<Term>();
+        Set<Term> locations = new HashSet<Term>();
         for (Atom a: startLocationSet){
             Term[] arguments = a.getArguments();
-            locationX.add(arguments[1]);
-            locationY.add(arguments[2]);
+            locations.add(arguments[1]);
         }
         for (Atom a: endLocationSet){
             Term[] arguments = a.getArguments();
-            locationX.add(arguments[1]);
-            locationY.add(arguments[2]);
+            locations.add(arguments[1]);
         }
         obsDb.close();
-        return new Tuple(locationX, locationY);
+        return locations;
     }
 
     /*
@@ -214,11 +253,10 @@ public class Bipedal{
         log.info("Started loading anchor into target partition");
         def locations = getLocations(obsPartition);
         Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
-        popMap.put(new Variable("LocationX"), locations[0]);
-        popMap.put(new Variable("LocationY"), locations[1]);
+        popMap.put(new Variable("Location"), locations);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
-        dbPop.populate((Anchor(LocationX, LocationY)).getFormula(), popMap);
+        dbPop.populate((Anchor(Location)).getFormula(), popMap);
         targetDb.close();
         log.info("Finished loading anchor into target partition");
     }
@@ -230,10 +268,8 @@ public class Bipedal{
     private Map<Variable, Set<Term>> getTwoLocationPopMap(Partition obsPartition){
         def locations = getLocations(obsPartition);
         Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
-        popMap.put(new Variable("LocationX1"), locations[0]);
-        popMap.put(new Variable("LocationY1"), locations[1]);
-        popMap.put(new Variable("LocationX2"), locations[0]);
-        popMap.put(new Variable("LocationY2"), locations[1]);
+        popMap.put(new Variable("Location1"), locations);
+        popMap.put(new Variable("Location2"), locations);
         return popMap;
     }
 
@@ -246,7 +282,9 @@ public class Bipedal{
         Map<Variable, Set<Term>> popMap = getTwoLocationPopMap(obsPartition);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
-        dbPop.populate((FrequentTrip(LocationX1, LocationY1, LocationX2, LocationY2)).getFormula(), popMap);
+        dbPop.populate((FrequentTrip(Location1, Location2)).getFormula(), popMap);
+        Set s = Queries.getAllAtoms(targetDb, FrequentTrip);
+        log.info('There are ' + s.size() + ' frequent trips in target partition');
         targetDb.close();
         log.info("Finished loading FrequentTrips into target partition");
         
@@ -269,7 +307,9 @@ public class Bipedal{
         popMap.put(new Variable("ModeTerm"), modes);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
-        dbPop.populate((FrequentTripMode(LocationX1, LocationY1, LocationX2, LocationY2, ModeTerm)).getFormula(), popMap);
+        dbPop.populate((FrequentTripMode(Location1, Location2, ModeTerm)).getFormula(), popMap);
+        Set s = Queries.getAllAtoms(targetDb, FrequentTripMode);
+        log.info('There are ' + s.size() + ' frequent trips + modes in target partition')
         obsDb.close();
         targetDb.close();
         log.info("Finished loading FrequentTripModes into target partition");
@@ -283,11 +323,12 @@ public class Bipedal{
         log.info("Started loading FrequentTripTimes into target partition");
         Map<Variable, Set<Term>> popMap = getTwoLocationPopMap(obsPartition);
         Set<Term> times = getTimesSet(obsPartition);
+        log.info("# Times: " + times.size());
         popMap.put(new Variable("Time1"), times);
-        popMap.put(new Variable("Time2"), times)
+        popMap.put(new Variable("Time2"), times);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
-        dbPop.populate((FrequentTripTime(LocationX1, LocationY1, LocationX2, LocationY2, Time1, Time2)).getFormula(), popMap);
+        dbPop.populate((FrequentTripTime(Location1, Location2, Time1, Time2)).getFormula(), popMap);
         targetDb.close();
         log.info("Finished loading FrequentTripTimes into target partition");
     }
@@ -309,12 +350,11 @@ public class Bipedal{
             modes.add(arguments[1]);
         }
         Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
-        popMap.put(new Variable("LocationX"), locations[0]);
-        popMap.put(new Variable("LocationY"), locations[1]);
+        popMap.put(new Variable("Location"), locations);
         popMap.put(new Variable("ModeTerm"), modes);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
-        dbPop.populate((AnchorMode(LocationX, LocationY, ModeTerm)).getFormula(), popMap);
+        dbPop.populate((AnchorMode(Location, ModeTerm)).getFormula(), popMap);
         obsDb.close();
         targetDb.close()
         log.info("Finished loading LocationMode into target partition");
@@ -351,12 +391,11 @@ public class Bipedal{
         def locations = getLocations(obsPartition);
         Set<Term> times = getTimesSet(obsPartition);
         Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
-        popMap.put(new Variable("LocationX"), locations[0]);
-        popMap.put(new Variable("LocationY"), locations[1]);
+        popMap.put(new Variable("Location"), locations);
         popMap.put(new Variable("Time"), times);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
-        dbPop.populate((AnchorTime(LocationX, LocationY, Time)).getFormula(), popMap);
+        dbPop.populate((AnchorTime(Location, Time)).getFormula(), popMap);
         targetDb.close();
         log.info("Finished loading LocationTime into target partition");
     }
@@ -390,12 +429,12 @@ public class Bipedal{
         crossLocationTime(obsPartition, targetsPartition);
         crossLocationMode(obsPartition, targetsPartition);
         crossAnchor(obsPartition, targetsPartition);
+        crossFrequentTripTimes(obsPartition, targetsPartition);
         crossFrequentTrips(obsPartition, targetsPartition);
         crossFrequentTripModes(obsPartition, targetsPartition);
-        crossFrequentTripTimes(obsPartition, targetsPartition);
 
-        inserter = ds.getInserter(Anchor, truthPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, 'anchor_truth.txt').toString());
+        // inserter = ds.getInserter(Anchor, truthPartition);
+        // InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, 'anchor_truth.txt').toString());
     }
 
     // Run inference
@@ -427,7 +466,7 @@ public class Bipedal{
         System.setOut(ps);
 
         AtomPrintStream aps = new DefaultAtomPrintStream();
-        Set anchorSet = Queries.getAllAtoms(resultsDB, FrequentTrip);
+        Set anchorSet = Queries.getAllAtoms(resultsDB, Anchor);
         for (Atom a : anchorSet) {
             aps.printAtom(a);
         }

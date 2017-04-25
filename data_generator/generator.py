@@ -40,22 +40,24 @@ def generate_locations(n):
             val = random.gauss(0, 1)
             # Adding some noise to the location values
             n1, n2 = random.uniform(-1, 1), random.uniform(-1, 1)
-            if val > 0 and val < 1:
-                f.write('%d\t%f\t%f\n' % (i, location1[0] + n1, location1[1] + n2))
-            elif val <= 0 and val > -1:
-                f.write('%d\t%f\t%f\n' % (i, location2[0] + n1, location2[1] + n2))
+            if val > 0 and val < 0.5:
+                f.write('%d\t%f-%f\n' % (i, location1[0] + n1, location1[1] + n2))
+            elif val <= 0 and val > -0.5:
+                f.write('%d\t%f-%f\n' % (i, location2[0] + n1, location2[1] + n2))
             else:
-                f.write('%d\t%f\t%f\n' % (i, location1[0] + float(random.randint(-50, 50)), location1[1] + float(random.randint(-50, 50))))
+                f.write('%d\t%f-%f\n' % (i, location1[0] + float(random.randint(-10, 10)) + n1, location1[1] + float(random.randint(-10, 10)) + n2))
         f.close()
     with open('end_location_obs.txt', 'w') as f:
         for i in range(0, n):
             val = random.gauss(0, 1)
-            if val > 0 and val < 1:
-                f.write('%d\t%f\t%f\n' % (i, location1[0], location1[1]))
-            elif val <= 0 and val > -1:
-                f.write('%d\t%f\t%f\n' % (i, location2[0], location2[1]))
+            n1, n2 = random.uniform(-1, 1), random.uniform(-1, 1)
+            if val > 0 and val < 0.5:
+                f.write('%d\t%f-%f\n' % (i, location1[0] + n1, location1[1] + n2))
+            elif val <= 0 and val > -0.5:
+                f.write('%d\t%f-%f\n' % (i, location2[0] + n1, location2[1] + n2))
             else:
-                f.write('%d\t%f\t%f\n' % (i, float(random.randint(0, 100)), float(random.randint(0, 100))))
+                print location2[1] + float(random.randint(-10, 10))
+                f.write('%d\t%f-%f\n' % (i, location2[1] + float(random.randint(-10, 10)) + n1, location2[1] + float(random.randint(-10, 10)) + n2))
         f.close()
 
 '''
@@ -91,8 +93,8 @@ def generate_days(n):
     day = 1
     lim = 30
     with open('segment_days_obs.txt', 'w') as f:
-        for i in range(0, n):
-            f.write('%d\t%d/%d/2017\n' % (i, month, day))
+        for i in range(1, n+1):
+            f.write('%d\t%d/%d/2017\n' % (i-1, month, day))
             if i % 3 == 0:
                 day += 1
             if i == lim:
