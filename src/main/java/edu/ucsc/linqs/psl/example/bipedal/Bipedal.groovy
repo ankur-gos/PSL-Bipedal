@@ -174,8 +174,11 @@ public class Bipedal{
             String s2 = args[1].getValue();
             double[] values = deserializeLocations(s1, s2);
             double mdist = (values[0] - values[2]).abs() + (values[1] - values[3]).abs();
-            // TODO: distance as decaying function
-            return mdist < 10.0 ? 1.0 : 0.0;
+            // Take the inverse of the mdist to get a value between 0 and 1 and return it.
+            double inv_mdist = 1 / mdist;
+            if inv_mdist > 1
+                inv_mdist = 1
+            return inv_mdist;
         }
     }
 
