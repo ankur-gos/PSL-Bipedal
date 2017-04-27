@@ -176,7 +176,7 @@ public class Bipedal{
             double mdist = (values[0] - values[2]).abs() + (values[1] - values[3]).abs();
             // Take the inverse of the mdist to get a value between 0 and 1 and return it.
             double inv_mdist = 1 / mdist;
-            if inv_mdist > 1
+            if(inv_mdist > 1)
                 inv_mdist = 1
             return inv_mdist;
         }
