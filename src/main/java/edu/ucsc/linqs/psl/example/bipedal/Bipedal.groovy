@@ -128,22 +128,22 @@ public class Bipedal{
         model.add rule: (AnchorMode(L, M)) >> Anchor(L), weight: 1;
         model.add rule: (AnchorTime(L, T)) >> Anchor(L), weight: 1;
         model.add rule: (AnchorTime(L1, T) & AnchorTime(L2, T) & ~EqualLocations(L1, L2)) >> ~Anchor(L2), weight: 1;
-        model.add rule: (Anchor(L1) & Near(L1, L2) & ~EqualLocations(L1, L2) & LeftOf(L1, L2)) >> ~Anchor(L2), weight: 5;
+        model.add rule: (Anchor(L1) & Near(L1, L2) & ~EqualLocations(L1, L2)) >> ~Anchor(L2), weight: 5;
         model.add rule: ~Anchor(L), weight: 1;
 
         // Frequent Trips
        model.add rule: (Segment(S) & Anchor(L1) & Anchor(L2) & Near(L2, L3)
                                    & StartLocation(S, L1) & EndLocation(S, L3)) >> FrequentTrip(L1, L2), weight: 1;
 
-       // TODO: Add time requirements
-       model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2) & Near(L2, L3)
-                                    & StartLocation(S1, L1) & EndLocation(S2, L3)
-                                    & SegmentDay(S1, D) & SegmentDay(S2, D)) >> FrequentTrip(L1, L2), weight: 1;
-       model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L1)) >> FrequentTrip(L2, L3), weight: 1;
-       model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L4) & FrequentTrip(L4, L1)) >> FrequentTrip(L2, L3), weight: 1;
-       model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2)
-                                                     & StartTime(S1, T1) & EndTime(S2, T2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 1;
-       model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2) & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(L1, L2, M), weight: 1;
+    //    // TODO: Add time requirements
+    //    model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2) & Near(L2, L3)
+    //                                 & StartLocation(S1, L1) & EndLocation(S2, L3)
+    //                                 & SegmentDay(S1, D) & SegmentDay(S2, D)) >> FrequentTrip(L1, L2), weight: 1;
+    //    model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L1)) >> FrequentTrip(L2, L3), weight: 1;
+    //    model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L4) & FrequentTrip(L4, L1)) >> FrequentTrip(L2, L3), weight: 1;
+    //    model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2)
+    //                                                  & StartTime(S1, T1) & EndTime(S2, T2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 1;
+    //    model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2) & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(L1, L2, M), weight: 1;
     }
 
     public double[] deserializeLocations(String s1, String s2){
@@ -469,7 +469,7 @@ public class Bipedal{
         System.setOut(ps);
 
         AtomPrintStream aps = new DefaultAtomPrintStream();
-        Set anchorSet = Queries.getAllAtoms(resultsDB, Anchor);
+        Set anchorSet = Queries.getAllAtoms(resultsDB, FrequentTrip);
         for (Atom a : anchorSet) {
             aps.printAtom(a);
         }
