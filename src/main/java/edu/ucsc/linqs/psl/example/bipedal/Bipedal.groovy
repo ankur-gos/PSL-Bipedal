@@ -147,8 +147,8 @@ public class Bipedal{
     }
 
     public double[] deserializeLocations(String s1, String s2){
-        String[] split1 = s1.split("-");
-        String[] split2 = s2.split("-");
+        String[] split1 = s1.split(" ");
+        String[] split2 = s2.split(" ");
         double x1 = Double.parseDouble(split1[0]);
         double y1 = Double.parseDouble(split1[1]);
         double x2 = Double.parseDouble(split2[0]);
