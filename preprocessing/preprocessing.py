@@ -26,8 +26,9 @@ def load_data(filename):
         return locations
 
 def run_gaussian_mixture(locations):
-    gmm = mixture.GaussianMixture(n_components=6).fit(locations)
+    gmm = mixture.GaussianMixture(n_components=3).fit(locations)
     means = gmm.means_
+    print means
     predictions = gmm.predict(locations)
     locations = [tuple(mean) for mean in means]
     predictions_list = list(predictions)
@@ -39,7 +40,7 @@ def write_locations(locations_list):
         # First half of the list is the start locations
         for i in range(0, len(locations_list)/2):
             start.write('%d\t%0.2f %0.2f\n' % (i, locations_list[i][0], locations_list[i][1]))
-        for i in range(len(locations_list)/2, len(locations_list)):
+        for i in range(0, len(locations_list)/2):
             end.write('%d\t%0.2f %0.2f\n' % (i, locations_list[i][0], locations_list[i][1]))
 
 def run():
