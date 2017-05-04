@@ -41,23 +41,23 @@ def generate_locations(n):
             # Adding some noise to the location values
             n1, n2 = random.uniform(-1, 1), random.uniform(-1, 1)
             if val > 0 and val < 0.5:
-                f.write('%d\t%f-%f\n' % (i, location1[0] + n1, location1[1] + n2))
+                f.write('%d\t%0.2f %0.2f\n' % (i, location1[0] + n1, location1[1] + n2))
             elif val <= 0 and val > -0.5:
-                f.write('%d\t%f-%f\n' % (i, location2[0] + n1, location2[1] + n2))
+                f.write('%d\t%0.2f %0.2f\n' % (i, location2[0] + n1, location2[1] + n2))
             else:
-                f.write('%d\t%f-%f\n' % (i, location1[0] + float(random.randint(-10, 10)) + n1, location1[1] + float(random.randint(-10, 10)) + n2))
+                f.write('%d\t%0.2f %0.2f\n' % (i, location1[0] + float(random.randint(-10, 10)) + n1, location1[1] + float(random.randint(-10, 10)) + n2))
         f.close()
     with open('end_location_obs.txt', 'w') as f:
         for i in range(0, n):
             val = random.gauss(0, 1)
             n1, n2 = random.uniform(-1, 1), random.uniform(-1, 1)
             if val > 0 and val < 0.5:
-                f.write('%d\t%f-%f\n' % (i, location1[0] + n1, location1[1] + n2))
+                f.write('%d\t%0.2f %0.2f\n' % (i, location1[0] + n1, location1[1] + n2))
             elif val <= 0 and val > -0.5:
-                f.write('%d\t%f-%f\n' % (i, location2[0] + n1, location2[1] + n2))
+                f.write('%d\t%0.2f %0.2f\n' % (i, location2[0] + n1, location2[1] + n2))
             else:
                 print location2[1] + float(random.randint(-10, 10))
-                f.write('%d\t%f-%f\n' % (i, location2[1] + float(random.randint(-10, 10)) + n1, location2[1] + float(random.randint(-10, 10)) + n2))
+                f.write('%d\t%0.2f %0.2f\n' % (i, location2[1] + float(random.randint(-10, 10)) + n1, location2[1] + float(random.randint(-10, 10)) + n2))
         f.close()
 
 '''

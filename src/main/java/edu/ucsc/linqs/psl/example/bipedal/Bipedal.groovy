@@ -7,6 +7,7 @@
 package edu.ucsc.linqs.psl.example.bipedal;
 
 import edu.umd.cs.psl.application.inference.MPEInference;
+import edu.umd.cs.psl.application.learning.weight.em.HardEM;
 import edu.umd.cs.psl.config.ConfigBundle;
 import edu.umd.cs.psl.config.ConfigManager;
 import edu.umd.cs.psl.database.Database;
@@ -54,7 +55,6 @@ public class Bipedal{
     private PSLModel model;
 
     // Config
-    // Copy pasted from example
     private class PSLConfig {
         public ConfigBundle cb;
         public String experimentName;
@@ -128,27 +128,27 @@ public class Bipedal{
         model.add rule: (AnchorMode(L, M)) >> Anchor(L), weight: 1;
         model.add rule: (AnchorTime(L, T)) >> Anchor(L), weight: 1;
         model.add rule: (AnchorTime(L1, T) & AnchorTime(L2, T) & ~EqualLocations(L1, L2)) >> ~Anchor(L2), weight: 1;
-        model.add rule: (Anchor(L1) & Near(L1, L2) & ~EqualLocations(L1, L2) & LeftOf(L1, L2)) >> ~Anchor(L2), weight: 5;
+        model.add rule: (Anchor(L1) & Near(L1, L2) & ~EqualLocations(L1, L2)) >> ~Anchor(L2), weight: 5;
         model.add rule: ~Anchor(L), weight: 1;
 
         // Frequent Trips
-       model.add rule: (Segment(S) & Anchor(L1) & Anchor(L2) & Near(L2, L3)
-                                   & StartLocation(S, L1) & EndLocation(S, L3)) >> FrequentTrip(L1, L2), weight: 1;
+       model.add rule: (Segment(S) & Anchor(L1) & Anchor(L2)
+                                   & StartLocation(S, L1) & EndLocation(S, L2) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 1;
 
        // TODO: Add time requirements
        model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2) & Near(L2, L3)
                                     & StartLocation(S1, L1) & EndLocation(S2, L3)
-                                    & SegmentDay(S1, D) & SegmentDay(S2, D)) >> FrequentTrip(L1, L2), weight: 1;
-       model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L1)) >> FrequentTrip(L2, L3), weight: 1;
-       model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L4) & FrequentTrip(L4, L1)) >> FrequentTrip(L2, L3), weight: 1;
+                                    & SegmentDay(S1, D) & SegmentDay(S2, D) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 1;
+       model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L1) & ~EqualLocations(L2, L3)) >> FrequentTrip(L2, L3), weight: 1;
+       model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L4) & FrequentTrip(L4, L1) & ~EqualLocations(L2, L3)) >> FrequentTrip(L2, L3), weight: 1;
        model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2)
-                                                     & StartTime(S1, T1) & EndTime(S2, T2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 1;
-       model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2) & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(L1, L2, M), weight: 1;
+                                                     & StartTime(S1, T1) & EndTime(S2, T2) & ~EqualLocations(L1, L2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 1;
+       model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2) & Mode(S1, M) & Mode(S2, M) & ~EqualLocations(L1, L2) ) >> FrequentTripMode(L1, L2, M), weight: 1;
     }
 
     public double[] deserializeLocations(String s1, String s2){
-        String[] split1 = s1.split("-");
-        String[] split2 = s2.split("-");
+        String[] split1 = s1.split(" ");
+        String[] split2 = s2.split(" ");
         double x1 = Double.parseDouble(split1[0]);
         double y1 = Double.parseDouble(split1[1]);
         double x2 = Double.parseDouble(split2[0]);
@@ -174,8 +174,11 @@ public class Bipedal{
             String s2 = args[1].getValue();
             double[] values = deserializeLocations(s1, s2);
             double mdist = (values[0] - values[2]).abs() + (values[1] - values[3]).abs();
-            // TODO: distance as decaying function
-            return mdist < 10.0 ? 1.0 : 0.0;
+            // Take the inverse of the mdist to get a value between 0 and 1 and return it.
+            double inv_mdist = 1 / mdist;
+            if(inv_mdist > 1)
+                inv_mdist = 1
+            return inv_mdist;
         }
     }
 
@@ -432,9 +435,21 @@ public class Bipedal{
         crossFrequentTripTimes(obsPartition, targetsPartition);
         crossFrequentTrips(obsPartition, targetsPartition);
         crossFrequentTripModes(obsPartition, targetsPartition);
+    }
 
-        // inserter = ds.getInserter(Anchor, truthPartition);
-        // InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, 'anchor_truth.txt').toString());
+    private void runEM(Partition obsPartition, Partition targetsPartition){
+        log.info("Starting EM");
+        Date infStart = new Date();
+        HashSet closed = new HashSet<StandardPredicate>([StartLocation,EndLocation,StartTime,EndTime,Segment,Mode, SegmentDay]);
+        Database inferDB = ds.getDatabase(targetsPartition);
+        ExpectationMaximization em = new DualEM(model, inferDB, config.cb);
+        FullInferenceResult result = mpe.mpeInference();
+
+        inferDB.close();
+        mpe.close();
+
+        log.info("Finished EM in {}", TimeCategory.minus(new Date(), infStart))
+
     }
 
     // Run inference
@@ -466,7 +481,7 @@ public class Bipedal{
         System.setOut(ps);
 
         AtomPrintStream aps = new DefaultAtomPrintStream();
-        Set anchorSet = Queries.getAllAtoms(resultsDB, Anchor);
+        Set anchorSet = Queries.getAllAtoms(resultsDB, FrequentTrip);
         for (Atom a : anchorSet) {
             aps.printAtom(a);
         }
