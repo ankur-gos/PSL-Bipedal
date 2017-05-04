@@ -7,6 +7,7 @@
 package edu.ucsc.linqs.psl.example.bipedal;
 
 import edu.umd.cs.psl.application.inference.MPEInference;
+import edu.umd.cs.psl.application.learning.weight.em.HardEM;
 import edu.umd.cs.psl.config.ConfigBundle;
 import edu.umd.cs.psl.config.ConfigManager;
 import edu.umd.cs.psl.database.Database;
@@ -54,7 +55,6 @@ public class Bipedal{
     private PSLModel model;
 
     // Config
-    // Copy pasted from example
     private class PSLConfig {
         public ConfigBundle cb;
         public String experimentName;
@@ -435,9 +435,21 @@ public class Bipedal{
         crossFrequentTripTimes(obsPartition, targetsPartition);
         crossFrequentTrips(obsPartition, targetsPartition);
         crossFrequentTripModes(obsPartition, targetsPartition);
+    }
 
-        // inserter = ds.getInserter(Anchor, truthPartition);
-        // InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, 'anchor_truth.txt').toString());
+    private void runEM(Partition obsPartition, Partition targetsPartition){
+        log.info("Starting EM");
+        Date infStart = new Date();
+        HashSet closed = new HashSet<StandardPredicate>([StartLocation,EndLocation,StartTime,EndTime,Segment,Mode, SegmentDay]);
+        Database inferDB = ds.getDatabase(targetsPartition);
+        ExpectationMaximization em = new DualEM(model, inferDB, config.cb);
+        FullInferenceResult result = mpe.mpeInference();
+
+        inferDB.close();
+        mpe.close();
+
+        log.info("Finished EM in {}", TimeCategory.minus(new Date(), infStart))
+
     }
 
     // Run inference
