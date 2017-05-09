@@ -15,6 +15,7 @@ import edu.umd.cs.psl.database.DatabasePopulator;
 import edu.umd.cs.psl.database.DataStore;
 import edu.umd.cs.psl.database.loading.Inserter;
 import edu.umd.cs.psl.database.Partition;
+import edu.umd.cs.psl.application.learning.weight.em.ExpectationMaximization;
 import edu.umd.cs.psl.database.rdbms.driver.H2DatabaseDriver;
 import edu.umd.cs.psl.database.rdbms.driver.H2DatabaseDriver.Type;
 import edu.umd.cs.psl.database.rdbms.RDBMSDataStore;
@@ -132,18 +133,18 @@ public class Bipedal{
         model.add rule: ~Anchor(L), weight: 1;
 
         // Frequent Trips
-       model.add rule: (Segment(S) & Anchor(L1) & Anchor(L2)
-                                   & StartLocation(S, L1) & EndLocation(S, L2) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 1;
+    //    model.add rule: (Segment(S) & Anchor(L1) & Anchor(L2)
+    //                                & StartLocation(S, L1) & EndLocation(S, L2) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 1;
 
-       // TODO: Add time requirements
-       model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2) & Near(L2, L3)
-                                    & StartLocation(S1, L1) & EndLocation(S2, L3)
-                                    & SegmentDay(S1, D) & SegmentDay(S2, D) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 1;
-       model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L1) & ~EqualLocations(L2, L3)) >> FrequentTrip(L2, L3), weight: 1;
-       model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L4) & FrequentTrip(L4, L1) & ~EqualLocations(L2, L3)) >> FrequentTrip(L2, L3), weight: 1;
-       model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2)
-                                                     & StartTime(S1, T1) & EndTime(S2, T2) & ~EqualLocations(L1, L2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 1;
-       model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2) & Mode(S1, M) & Mode(S2, M) & ~EqualLocations(L1, L2) ) >> FrequentTripMode(L1, L2, M), weight: 1;
+    //    // TODO: Add time requirements
+    //    model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2) & Near(L2, L3)
+    //                                 & StartLocation(S1, L1) & EndLocation(S2, L3)
+    //                                 & SegmentDay(S1, D) & SegmentDay(S2, D) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 1;
+    //    model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L1) & ~EqualLocations(L2, L3)) >> FrequentTrip(L2, L3), weight: 1;
+    //    model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L4) & FrequentTrip(L4, L1) & ~EqualLocations(L2, L3)) >> FrequentTrip(L2, L3), weight: 1;
+    //    model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2)
+    //                                                  & StartTime(S1, T1) & EndTime(S2, T2) & ~EqualLocations(L1, L2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 1;
+    //    model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2) & Mode(S1, M) & Mode(S2, M) & ~EqualLocations(L1, L2) ) >> FrequentTripMode(L1, L2, M), weight: 1;
     }
 
     public double[] deserializeLocations(String s1, String s2){
@@ -442,11 +443,12 @@ public class Bipedal{
         Date infStart = new Date();
         HashSet closed = new HashSet<StandardPredicate>([StartLocation,EndLocation,StartTime,EndTime,Segment,Mode, SegmentDay]);
         Database inferDB = ds.getDatabase(targetsPartition);
-        ExpectationMaximization em = new DualEM(model, inferDB, config.cb);
-        FullInferenceResult result = mpe.mpeInference();
-
+        Database obsDB = ds.getDatabase(obsPartition, closed);
+        ExpectationMaximization em = new HardEM(model, inferDB, obsDB, config.cb);
+        em.learn();
+        em.close();
         inferDB.close();
-        mpe.close();
+        obsDB.close();
 
         log.info("Finished EM in {}", TimeCategory.minus(new Date(), infStart))
 
@@ -526,6 +528,7 @@ public class Bipedal{
         defineFunctions();
         defineRules();
         loadData(obsPartition, targetsPartition, truthPartition);
+        runEM(obsPartition, targetsPartition);
         runInference(obsPartition, targetsPartition);
         writeOutput(targetsPartition);
         evalResults(targetsPartition, truthPartition);
