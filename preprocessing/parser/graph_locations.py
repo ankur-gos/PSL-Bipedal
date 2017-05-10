@@ -49,10 +49,5 @@ def recursive_default(val):
         return val.__dict__
     return '%f' % val
 
-def correspond(locations_file, activities_file):
-    with open(locations_file, 'r') as lf, open(activities_file, 'r') as af:
-        pass
-    pass
-
-# filter_info('/Users/ankur/Coding/PSL-Bipedal/preprocessing/parser/jay_march_2016_2_march_2017.timeline')
-parse_locations('/Users/ankur/Coding/PSL-Bipedal/preprocessing/parser/filtered_locations.txt')
+filter_info('/Users/ankur/Coding/PSL-Bipedal/preprocessing/parser/jay_march_2016_2_march_2017.timeline')
+# parse_locations('/Users/ankur/Coding/PSL-Bipedal/preprocessing/parser/filtered_locations.txt')
