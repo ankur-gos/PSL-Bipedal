@@ -24,6 +24,7 @@ def parse_locations(filename):
         coordinates_x = [x[0] for x in coordinates]
         coordinates_y = [y[1] for y in coordinates]
         plt.plot(coordinates_x, coordinates_y, 'ro')
+        # Box of the USA
         plt.axis([-124.848974, -66.885444, 24.396308, 49.384358])
         plt.show()
 

@@ -15,10 +15,10 @@ import numpy as np
 def truncate_locations(start, end):
     with open(start, 'r') as start_file, open(end, 'r') as end_file, open('truncated_locations.txt', 'w') as fout:
         for line in start_file:
-            # Truncate past the first two characters (segment # and tab character)
-            fout.write(line[2:])
+            # Truncate past the tab (segment # and tab character)
+            fout.write(line.split('\t', 1)[-1])
         for line in end_file:
-            fout.write(line[2:])
+            fout.write(line.split('\t', 1)[-1])
 
 def load_data(filename):
     with open(filename, 'r') as file:
@@ -26,22 +26,27 @@ def load_data(filename):
         return locations
 
 def run_gaussian_mixture(locations):
-    gmm = mixture.GaussianMixture(n_components=3).fit(locations)
-    means = gmm.means_
-    print means
-    predictions = gmm.predict(locations)
+    mixtures = []
+    bics = []
+    for n in range(1, len(locations)/8):
+        gmm = mixture.GaussianMixture(n_components=n).fit(locations)
+        mixtures.append(gmm)
+    min_gmm = min(mixtures, key=lambda m: m.bic(locations))
+    means = min_gmm.means_
+    print len(means)
+    predictions = min_gmm.predict(locations)
     locations = [tuple(mean) for mean in means]
     predictions_list = list(predictions)
     # Return the mapped location to the prediction
     return [locations[p] for p in predictions_list]
     
 def write_locations(locations_list):
-    with open('start_location_obs.txt', 'w') as start, open('end_location_obs.txt', 'w') as end:
+    with open('start_location_obs_post.txt', 'w') as start, open('end_location_obs_post.txt', 'w') as end:
         # First half of the list is the start locations
         for i in range(0, len(locations_list)/2):
-            start.write('%d\t%0.2f %0.2f\n' % (i, locations_list[i][0], locations_list[i][1]))
+            start.write('%d\t%f %f\n' % (i, locations_list[i][0], locations_list[i][1]))
         for i in range(0, len(locations_list)/2):
-            end.write('%d\t%0.2f %0.2f\n' % (i, locations_list[i][0], locations_list[i][1]))
+            end.write('%d\t%f %f\n' % (i, locations_list[i][0], locations_list[i][1]))
 
 def run():
     truncate_locations('start_location_obs.txt', 'end_location_obs.txt')
@@ -49,9 +54,7 @@ def run():
     new_locations = run_gaussian_mixture(locations)
     write_locations(new_locations)
 
-
 run()
-
 
 '''
     Not actually needed
