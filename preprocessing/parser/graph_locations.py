@@ -26,6 +26,9 @@ def parse_locations(filename):
         plt.plot(coordinates_x, coordinates_y, 'ro')
         # Box of the USA
         plt.axis([-124.848974, -66.885444, 24.396308, 49.384358])
+        plt.title('Locations')
+        plt.xlabel('Longitude')
+        plt.ylabel('Latitude')
         plt.show()
 
 def filter_info(filename):
@@ -50,5 +53,5 @@ def recursive_default(val):
         return val.__dict__
     return '%f' % val
 
-filter_info('/Users/ankur/Coding/PSL-Bipedal/preprocessing/parser/jay_march_2016_2_march_2017.timeline')
-# parse_locations('/Users/ankur/Coding/PSL-Bipedal/preprocessing/parser/filtered_locations.txt')
+# filter_info('/Users/ankur/Coding/PSL-Bipedal/preprocessing/parser/jay_march_2016_2_march_2017.timeline')
+parse_locations('/Users/ankur/Coding/PSL-Bipedal/preprocessing/parser/filtered_locations.txt')
