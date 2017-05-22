@@ -7,6 +7,15 @@
 from sklearn.cluster import KMeans
 from sklearn import mixture
 import numpy as np
+import itertools
+
+import numpy as np
+from scipy import linalg
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+
+color_iter = itertools.cycle(['navy', 'c', 'cornflowerblue', 'gold',
+                              'darkorange'])
 
 '''
     truncate_locations
@@ -25,34 +34,112 @@ def load_data(filename):
         locations = np.loadtxt(file, delimiter=' ')
         return locations
 
+'''
+Graph function taken from
+http://scikit-learn.org/stable/auto_examples/mixture/plot_gmm.html#sphx-glr-auto-examples-mixture-plot-gmm-py
+'''
+def plot_results(X, Y_, means, covariances, index, title):
+    splot = plt.subplot(1, 1, 1 + index)
+    for i, (mean, covar, color) in enumerate(zip(
+            means, covariances, color_iter)):
+        v, w = linalg.eigh(covar)
+        v = 2. * np.sqrt(2.) * np.sqrt(v)
+        u = w[0] / linalg.norm(w[0])
+        # as the DP will not use every component it has access to
+        # unless it needs it, we shouldn't plot the redundant
+        # components.
+        if not np.any(Y_ == i):
+            continue
+        plt.scatter(X[Y_ == i, 0], X[Y_ == i, 1], 10, color=color)
+
+        # Plot an ellipse to show the Gaussian component
+        angle = np.arctan(u[1] / u[0])
+        angle = 180. * angle / np.pi  # convert to degrees
+        ell = mpl.patches.Ellipse(mean, v[0], v[1], 180. + angle, color=color)
+        ell.set_clip_box(splot.bbox)
+        ell.set_alpha(0.5)
+        splot.add_artist(ell)
+
+    plt.axis([-124.848974, -66.885444, 24.396308, 49.384358])
+    plt.title('Gaussian Mixture with K=5')
+    plt.xlabel('Longitude')
+    plt.ylabel('Latitude')
+    # plt.xlim(-9., 5.)
+    # plt.ylim(-3., 6.)
+    plt.xticks(())
+    plt.yticks(())
+    # plt.title(title)
+
 def run_gaussian_mixture(locations):
     mixtures = []
-    bics = []
-    for n in range(1, len(locations)/8):
+    for n in range(2, 3):
+        gmm = mixture.GaussianMixture(n_components=n).fit(locations)
+        mixtures.append(gmm)
+    min_gmm = min(mixtures, key=lambda m: m.bic(locations))
+    predictions = min_gmm.predict(locations)
+    plot_results(locations, predictions, min_gmm.means_, min_gmm.covariances_, 0, 'Results')
+    plt.show()
+    predictions_list = list(predictions)
+    clusters = dict()
+    for ind, prediction in enumerate(predictions_list):
+        if prediction not in clusters:
+            clusters[prediction] = [(tuple(locations[ind]), ind)]
+        else:
+            # curr = clusters[prediction]
+            # curr.append(tuple(locations[ind]))
+            clusters[prediction].append((tuple(locations[ind]), ind))
+    return clusters
+
+def predict_mixture(locations_with_index):
+    mixtures = []
+    # print locations_with_index[0]
+    locations = np.matrix([[lwi[0][0], lwi[0][1]] for lwi in locations_with_index])
+    for n in range(1, 50):
         gmm = mixture.GaussianMixture(n_components=n).fit(locations)
         mixtures.append(gmm)
     min_gmm = min(mixtures, key=lambda m: m.bic(locations))
     means = min_gmm.means_
-    print len(means)
     predictions = min_gmm.predict(locations)
     locations = [tuple(mean) for mean in means]
     predictions_list = list(predictions)
-    # Return the mapped location to the prediction
-    return [locations[p] for p in predictions_list]
+
+    return [(locations[p], locations_with_index[ind][1]) for ind, p in enumerate(predictions_list)]
     
-def write_locations(locations_list):
-    with open('start_location_obs_post.txt', 'w') as start, open('end_location_obs_post.txt', 'w') as end:
-        # First half of the list is the start locations
-        for i in range(0, len(locations_list)/2):
-            start.write('%d\t%f %f\n' % (i, locations_list[i][0], locations_list[i][1]))
-        for i in range(0, len(locations_list)/2):
-            end.write('%d\t%f %f\n' % (i, locations_list[i][0], locations_list[i][1]))
+def write_locations(locations_list, total_length):
+    with open('start_location_obs_post.txt', 'w') as sf, open('end_location_obs_post.txt', 'w') as ef:
+        table = dict()
+        for location in locations_list:
+            # print locations_list
+            key = location[1] - total_length/2
+            if location[1] < total_length/2:
+                key = location[1] + total_length/2
+            if location[1] in table:
+                continue
+            if key in table:
+                corresponding_location = table[key]
+                segment = key if key < total_length/2 else location[1]
+                start, end = None, None
+                if key == segment:
+                    start = location[0]
+                    end = corresponding_location
+                else:
+                    start = corresponding_location
+                    end = location[0]
+                sf.write('%d\t%f %f\n' % (segment, start[0], start[1]))
+                ef.write('%d\t%f %f\n' % (segment, end[0], end[1]))
+            table[location[1]] = location[0]
 
 def run():
     truncate_locations('start_location_obs.txt', 'end_location_obs.txt')
     locations = load_data('truncated_locations.txt')
     new_locations = run_gaussian_mixture(locations)
-    write_locations(new_locations)
+    predicted_locations = None
+    max_cluster = max(new_locations, key=lambda v: len(new_locations[v]))
+    new_locations.pop(max_cluster, None)
+    max_cluster = max(new_locations.itervalues(), key=lambda v: len(v))
+    print len(max_cluster)
+    # predicted_locations = predict_mixture(max_cluster)
+    write_locations(max_cluster, len(locations))
 
 run()
 
