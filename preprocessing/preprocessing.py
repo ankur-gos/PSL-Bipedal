@@ -19,7 +19,7 @@ color_iter = itertools.cycle(['navy', 'c', 'cornflowerblue', 'gold',
 
 '''
     truncate_locations
-    read the start and end locations files, truncate the first two characters and write them to one file
+    read the start and end locations files, truncate past the first tab
 '''
 def truncate_locations(start, end):
     with open(start, 'r') as start_file, open(end, 'r') as end_file, open('truncated_locations.txt', 'w') as fout:
@@ -29,6 +29,11 @@ def truncate_locations(start, end):
         for line in end_file:
             fout.write(line.split('\t', 1)[-1])
 
+'''
+    load_data
+    Load data from the filename passed in and return that matrix
+    returns np.matrix
+'''
 def load_data(filename):
     with open(filename, 'r') as file:
         locations = np.loadtxt(file, delimiter=' ')
@@ -64,13 +69,43 @@ def plot_results(X, Y_, means, covariances, index, title):
     plt.title('Gaussian Mixture with K=5')
     plt.xlabel('Longitude')
     plt.ylabel('Latitude')
-    # plt.xlim(-9., 5.)
-    # plt.ylim(-3., 6.)
     plt.xticks(())
     plt.yticks(())
-    # plt.title(title)
 
-def run_gaussian_mixture(locations):
+'''
+    run_gaussian_mixture
+    Pass in location data, minimum number of gaussians, and maximum number of gaussians
+    Find the Gaussian Mixture model for each # gaussians, then pick the model which minimizes the
+    bayesian information criteria
+
+    Finally, create a dictionary where each cluster key maps to the locations in that cluster
+
+    TODO: Make sure min gaussians and max gaussians are valid parameters
+'''
+def run_gaussian_mixture(locations, min_gaussians, max_gaussians):
+    mixtures = []
+    for n in range(min_gaussians, max_gaussians):
+        gmm = mixture.GaussianMixture(n_components=n).fit(locations)
+        mixtures.append(gmm)
+    min_gmm = min(mixtures, key=lambda m: m.bic(locations))
+    predictions = min_gmm.predict(locations)
+    predictions_list = list(predictions)
+    # initialize cluster dict
+    clusters = dict()
+    for ind, prediction in enumerate(predictions_list):
+        # First time seeing prediction, initialize location, ind list
+        if prediction not in clusters:
+            clusters[prediction] = [(tuple(locations[ind]), ind)]
+        else:
+            clusters[prediction].append((tuple(locations[ind]), ind))
+    return clusters
+
+'''
+    plot_gaussian_mixture
+    same as first part of run, but plot the optimal model
+    TODO: Refactor first part
+'''
+def plot_gaussian_mixture(locations, min_gaussians, max_gaussians):
     mixtures = []
     for n in range(2, 3):
         gmm = mixture.GaussianMixture(n_components=n).fit(locations)
@@ -79,20 +114,14 @@ def run_gaussian_mixture(locations):
     predictions = min_gmm.predict(locations)
     plot_results(locations, predictions, min_gmm.means_, min_gmm.covariances_, 0, 'Results')
     plt.show()
-    predictions_list = list(predictions)
-    clusters = dict()
-    for ind, prediction in enumerate(predictions_list):
-        if prediction not in clusters:
-            clusters[prediction] = [(tuple(locations[ind]), ind)]
-        else:
-            # curr = clusters[prediction]
-            # curr.append(tuple(locations[ind]))
-            clusters[prediction].append((tuple(locations[ind]), ind))
-    return clusters
 
+'''
+    predict_mixture
+    Similar to run_gaussian_mixture, except instead of categorizing locations according to
+    the cluster their in, reassign locations to the cluster mean and return that new list
+'''
 def predict_mixture(locations_with_index):
     mixtures = []
-    # print locations_with_index[0]
     locations = np.matrix([[lwi[0][0], lwi[0][1]] for lwi in locations_with_index])
     for n in range(1, 50):
         gmm = mixture.GaussianMixture(n_components=n).fit(locations)
@@ -102,14 +131,18 @@ def predict_mixture(locations_with_index):
     predictions = min_gmm.predict(locations)
     locations = [tuple(mean) for mean in means]
     predictions_list = list(predictions)
-
     return [(locations[p], locations_with_index[ind][1]) for ind, p in enumerate(predictions_list)]
     
+'''
+    write_locations
+    Given a list of locations associated with a cluster (So not the entire list) and the length of the entire list
+    (Where the first half of the entire list is the start locations and the second half the end locations),
+    map and write each corresponding start and end locations
+'''
 def write_locations(locations_list, total_length):
     with open('start_location_obs_post.txt', 'w') as sf, open('end_location_obs_post.txt', 'w') as ef:
         table = dict()
         for location in locations_list:
-            # print locations_list
             key = location[1] - total_length/2
             if location[1] < total_length/2:
                 key = location[1] + total_length/2
@@ -133,22 +166,11 @@ def run():
     truncate_locations('start_location_obs.txt', 'end_location_obs.txt')
     locations = load_data('truncated_locations.txt')
     new_locations = run_gaussian_mixture(locations)
-    predicted_locations = None
+    # predicted_locations = None
     max_cluster = max(new_locations, key=lambda v: len(new_locations[v]))
     new_locations.pop(max_cluster, None)
     max_cluster = max(new_locations.itervalues(), key=lambda v: len(v))
-    print len(max_cluster)
-    # predicted_locations = predict_mixture(max_cluster)
     write_locations(max_cluster, len(locations))
 
 run()
-
-'''
-    Not actually needed
-'''
-def run_kmeans(locations):
-     kmeans = KMeans(n_clusters=5).fit(locations)
-     print kmeans.cluster_centers_
-     return kmeans.cluster_centers_
-
 
