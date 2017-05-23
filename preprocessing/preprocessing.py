@@ -6,9 +6,9 @@
 
 from sklearn.cluster import KMeans
 from sklearn import mixture
-import numpy as np
+import numpy as n
 import itertools
-
+from os import remove
 import numpy as np
 from scipy import linalg
 import matplotlib.pyplot as plt
@@ -139,8 +139,8 @@ def predict_mixture(locations_with_index):
     (Where the first half of the entire list is the start locations and the second half the end locations),
     map and write each corresponding start and end locations
 '''
-def write_locations(locations_list, total_length):
-    with open('start_location_obs_post.txt', 'w') as sf, open('end_location_obs_post.txt', 'w') as ef:
+def write_locations(locations_list, total_length, start_file, end_file):
+    with open(start_file, 'w') as sf, open(end_file, 'w') as ef:
         table = dict()
         for location in locations_list:
             key = location[1] - total_length/2
@@ -162,8 +162,15 @@ def write_locations(locations_list, total_length):
                 ef.write('%d\t%f %f\n' % (segment, end[0], end[1]))
             table[location[1]] = location[0]
 
-def run():
-    truncate_locations('start_location_obs.txt', 'end_location_obs.txt')
+'''
+    Cleanup any intermediate files
+'''
+def cleanup(files):
+    for file in files:
+        remove(file)
+
+def run(start_file, end_file):
+    truncate_locations(start_file, end_file)
     locations = load_data('truncated_locations.txt')
     new_locations = run_gaussian_mixture(locations)
     # predicted_locations = None
@@ -171,6 +178,7 @@ def run():
     new_locations.pop(max_cluster, None)
     max_cluster = max(new_locations.itervalues(), key=lambda v: len(v))
     write_locations(max_cluster, len(locations))
+    cleanup(['truncated_locations.txt'])
 
 run()
 
