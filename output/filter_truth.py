@@ -17,7 +17,7 @@ def filter(filename, write_file):
         for line in lines:
             write_f.write(line[0])
 
-if len(sys.argv) < 3:
-    raise Exception('Usage: python filter_truth.py FILTER_FILENAME WRITE_FILENAME')
+# if len(sys.argv) < 3:
+#     raise Exception('Usage: python filter_truth.py FILTER_FILENAME WRITE_FILENAME')
 
-filter(sys.argv[1], sys.argv[2])
+# filter(sys.argv[1], sys.argv[2])

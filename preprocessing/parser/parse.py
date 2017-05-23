@@ -139,6 +139,6 @@ def write_obs(observations, segment_path, start_loc_path, end_loc_path, start_ti
 # obs = parse_segments(data_path)
 # write_obs(obs, seg_path, start_loc_path, end_loc_path, start_time_path, end_time_path, mode_path)
 
-obs = parse_cleaned_segments(data_path)
-write_cleaned_obs(obs, seg_path, start_loc_path, end_loc_path, start_time_path, end_time_path, mode_path)
+# obs = parse_cleaned_segments(data_path)
+# write_cleaned_obs(obs, seg_path, start_loc_path, end_loc_path, start_time_path, end_time_path, mode_path)
 
