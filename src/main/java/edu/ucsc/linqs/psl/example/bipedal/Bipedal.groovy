@@ -411,10 +411,10 @@ public class Bipedal{
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "segment_obs.txt").toString());
 
         inserter = ds.getInserter(StartLocation, obsPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "start_location_obs_post.txt").toString());
+        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "start_location_obs.txt").toString());
 
         inserter = ds.getInserter(EndLocation, obsPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "end_location_obs_post.txt").toString());
+        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "end_location_obs.txt").toString());
 
         inserter = ds.getInserter(StartTime, obsPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "start_time_obs.txt").toString());
