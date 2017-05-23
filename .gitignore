@@ -33,3 +33,4 @@ classpath.out
 preprocessing/parser/jay_march_2016_2_march_2017.timeline
 data/
 preprocessing/parser/data/
+*.pyc
