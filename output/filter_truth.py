@@ -11,7 +11,7 @@ def filter(filename, write_file):
         lines = []
         for line in read_f:
             if 'Truth=[0]' not in line:
-                truth = re.search(r'(.*)Truth=[(.*)].*', line, re.M|re.I)
+                truth = re.search(r'(.*)Truth=\[(.*)\].*', line, re.M|re.I)
                 lines.append((line, float(truth.group(2))))
         lines.sort(key=lambda x: x[1])
         for line in lines:

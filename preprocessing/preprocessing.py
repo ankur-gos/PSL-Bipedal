@@ -187,7 +187,7 @@ def run(start_file, end_file):
     locations = load_data('truncated_locations.txt')
     new_locations = run_gaussian_mixture(locations, 2, 3)
     max_cluster = max(new_locations.itervalues(), key=lambda v: len(v))
-    max_cluster = sample_n_values(400, max_cluster)
+    # max_cluster = sample_n_values(400, max_cluster)
     write_locations(max_cluster, len(locations), start_file, end_file)
     cleanup(['truncated_locations.txt'])
 
