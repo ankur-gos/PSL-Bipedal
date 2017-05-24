@@ -13,6 +13,7 @@ import numpy as np
 from scipy import linalg
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import random
 
 color_iter = itertools.cycle(['navy', 'c', 'cornflowerblue', 'gold',
                               'darkorange'])
@@ -107,7 +108,7 @@ def run_gaussian_mixture(locations, min_gaussians, max_gaussians):
 '''
 def plot_gaussian_mixture(locations, min_gaussians, max_gaussians):
     mixtures = []
-    for n in range(2, 3):
+    for n in range(min_gaussians, max_gaussians):
         gmm = mixture.GaussianMixture(n_components=n).fit(locations)
         mixtures.append(gmm)
     min_gmm = min(mixtures, key=lambda m: m.bic(locations))
@@ -169,16 +170,25 @@ def cleanup(files):
     for file in files:
         remove(file)
 
+'''
+    sample_n_values
+    sample n values from the first half (starting locations)
+    These will then pair later on
+'''
+def sample_n_values(n, array):
+    half = [val for ind, val in enumerate(array) if ind < len(array)/2]
+    second_half = [val for ind, val in enumerate(array) if ind >= len(array)/2]
+    print len(half)
+    sampled_half = random.sample(half, n)
+    return sampled_half + second_half
+
 def run(start_file, end_file):
     truncate_locations(start_file, end_file)
     locations = load_data('truncated_locations.txt')
-    new_locations = run_gaussian_mixture(locations)
-    # predicted_locations = None
-    max_cluster = max(new_locations, key=lambda v: len(new_locations[v]))
-    new_locations.pop(max_cluster, None)
+    new_locations = run_gaussian_mixture(locations, 2, 3)
     max_cluster = max(new_locations.itervalues(), key=lambda v: len(v))
-    write_locations(max_cluster, len(locations))
+    max_cluster = sample_n_values(600, max_cluster)
+    write_locations(max_cluster, len(locations), start_file, end_file)
     cleanup(['truncated_locations.txt'])
 
-run()
 
