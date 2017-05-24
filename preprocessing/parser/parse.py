@@ -136,8 +136,8 @@ def parse_cleaned_segments(filename):
         return obs
 
 
-def write_obs(observations, segment_path, start_loc_path, end_loc_path, start_time_path, end_time_path, mode_path):
-    with open(segment_path, 'w+') as sf, open(mode_path, 'w+') as mode_f, open(start_loc_path, 'w+') as start_lf, open(end_loc_path,'w+') as end_lf, open(start_time_path, 'w+') as start_tf, open(end_time_path, 'w+') as end_tf:
+def write_obs(observations, segment_path, start_loc_path, end_loc_path, start_time_path, end_time_path, mode_path, segment_day_path):
+    with open(segment_path, 'w+') as sf, open(mode_path, 'w+') as mode_f, open(start_loc_path, 'w+') as start_lf, open(end_loc_path,'w+') as end_lf, open(start_time_path, 'w+') as start_tf, open(end_time_path, 'w+') as end_tf, open(segment_day_path, 'w+') as day_f:
         for ind, obs in enumerate(observations):
             sf.write('%d\n' % ind)
             if obs.mode is not None:

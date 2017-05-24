@@ -121,10 +121,10 @@ def plot_gaussian_mixture(locations, min_gaussians, max_gaussians):
     Similar to run_gaussian_mixture, except instead of categorizing locations according to
     the cluster their in, reassign locations to the cluster mean and return that new list
 '''
-def predict_mixture(locations_with_index):
+def predict_mixture(locations_with_index, min_gaussians, max_gaussians):
     mixtures = []
     locations = np.matrix([[lwi[0][0], lwi[0][1]] for lwi in locations_with_index])
-    for n in range(1, 50):
+    for n in range(min_gaussians, max_gaussians):
         gmm = mixture.GaussianMixture(n_components=n).fit(locations)
         mixtures.append(gmm)
     min_gmm = min(mixtures, key=lambda m: m.bic(locations))
@@ -187,7 +187,18 @@ def run(start_file, end_file):
     locations = load_data('truncated_locations.txt')
     new_locations = run_gaussian_mixture(locations, 2, 3)
     max_cluster = max(new_locations.itervalues(), key=lambda v: len(v))
-    max_cluster = sample_n_values(600, max_cluster)
+    max_cluster = sample_n_values(400, max_cluster)
+    write_locations(max_cluster, len(locations), start_file, end_file)
+    cleanup(['truncated_locations.txt'])
+
+def run_with_assignment(start_file, end_file, noise_est=0.7):
+    truncate_locations(start_file, end_file)
+    locations = load_data('truncated_locations.txt')
+    new_locations = run_gaussian_mixture(locations, 2, 5)
+    max_cluster = max(new_locations.itervalues(), key=lambda v: len(v))
+    gaussians = int(noise_est * len(max_cluster))
+    max_cluster = predict_mixture(max_cluster, gaussians, gaussians+1)
+    max_cluster = sample_n_values(400, max_cluster)
     write_locations(max_cluster, len(locations), start_file, end_file)
     cleanup(['truncated_locations.txt'])
 

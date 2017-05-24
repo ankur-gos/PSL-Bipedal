@@ -128,7 +128,7 @@ public class Bipedal{
         model.add rule: (Segment(S) & EndLocation(S, L) & Mode(S, M)) >> AnchorMode(L, M), weight: 1;
         model.add rule: (AnchorMode(L, M)) >> Anchor(L), weight: 1;
         model.add rule: (AnchorTime(L, T)) >> Anchor(L), weight: 1;
-        model.add rule: (AnchorTime(L1, T) & AnchorTime(L2, T) & ~EqualLocations(L1, L2)) >> ~Anchor(L2), weight: 1;
+        // model.add rule: (AnchorTime(L1, T) & AnchorTime(L2, T) & ~EqualLocations(L1, L2)) >> ~Anchor(L2), weight: 1;
         model.add rule: ~Anchor(L1), weight: 1;
 
         // Frequent Trips
@@ -140,7 +140,7 @@ public class Bipedal{
                                     & StartLocation(S1, L1) & EndLocation(S2, L3)
                                     & SegmentDay(S1, D) & SegmentDay(S2, D) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 20;
         model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L1) & ~EqualLocations(L2, L3)) >> FrequentTrip(L2, L3), weight: 1;
-        model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L4) & FrequentTrip(L4, L1) & ~EqualLocations(L2, L3)) >> FrequentTrip(L2, L3), weight: 1;
+        // model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L4) & FrequentTrip(L4, L1) & ~EqualLocations(L2, L3)) >> FrequentTrip(L2, L3), weight: 1;
         // model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2)
         //                                              & StartTime(S1, T1) & EndTime(S2, T2) & ~EqualLocations(L1, L2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 1;
         // model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2) & Mode(S1, M) & Mode(S2, M) & ~EqualLocations(L1, L2) ) >> FrequentTripMode(L1, L2, M), weight: 1;

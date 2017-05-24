@@ -7,7 +7,7 @@ import sys
 import re
 
 def filter(filename, write_file):
-    with open(filename, 'r') as read_f, open(write_file, 'w') as write_f:
+    with open(filename, 'r') as read_f, open(write_file, 'w+') as write_f:
         lines = []
         for line in read_f:
             if 'Truth=[0]' not in line:
