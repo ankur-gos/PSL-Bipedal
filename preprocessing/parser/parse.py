@@ -42,6 +42,16 @@ def is_start_segment(item):
     # print item['data']
     return item['data']['cycling'] or item['data']['walking'] or item['data']['running'] or item['data']['automotive']
 
+def get_cleaned_mode(item):
+    val = item['data']['sensed_mode']
+    if val == 0:
+        return 'automotive'
+    if val == 1:
+        return 'cycling'
+    if val == 2:
+        return 'walking'
+    return None
+
 def is_cleaned_segment(item):
     return get_key(item) == 'analysis/cleaned_section'
 
@@ -55,6 +65,7 @@ def get_location_obs_from_csegment(item):
     location.end_location = (end_loc[0], start_loc[1])
     location.start_time = get_time_string(start_hour)
     location.end_time = get_time_string(end_hour)
+    location.mode = get_cleaned_mode(item)
     return location
 
 
@@ -106,8 +117,8 @@ def parse_segments(filename):
 '''
     Literally same as write_obs, except mode, probably should refactor later
 '''
-def write_cleaned_obs(observations, segment_path, start_loc_path, end_loc_path, start_time_path, end_time_path, mode_path):
-    with open(segment_path, 'w') as sf, open(start_loc_path, 'w') as start_lf, open(end_loc_path, 'w') as end_lf, open(start_time_path, 'w') as start_tf, open(end_time_path, 'w') as end_tf, open(mode_path, 'w') as mode_f:
+def write_cleaned_obs(observations, segment_path, start_loc_path, end_loc_path, start_time_path, end_time_path, mode_path, segment_day_path):
+    with open(segment_path, 'w+') as sf, open(start_loc_path, 'w+') as start_lf, open(end_loc_path, 'w+') as end_lf, open(start_time_path, 'w+') as start_tf, open(end_time_path, 'w+') as end_tf, open(mode_path, 'w+') as mode_f, open(segment_day_path, 'w+') as day_f:
         for ind, obs in enumerate(observations):
             sf.write('%d\n' % ind)
             mode_f.write('%d\tcycling\n' % ind)
@@ -126,10 +137,11 @@ def parse_cleaned_segments(filename):
 
 
 def write_obs(observations, segment_path, start_loc_path, end_loc_path, start_time_path, end_time_path, mode_path):
-    with open(segment_path, 'w') as sf, open(mode_path, 'w') as mode_f, open(start_loc_path, 'w') as start_lf, open(end_loc_path,'w') as end_lf, open(start_time_path, 'w') as start_tf, open(end_time_path, 'w') as end_tf:
+    with open(segment_path, 'w+') as sf, open(mode_path, 'w+') as mode_f, open(start_loc_path, 'w+') as start_lf, open(end_loc_path,'w+') as end_lf, open(start_time_path, 'w+') as start_tf, open(end_time_path, 'w+') as end_tf:
         for ind, obs in enumerate(observations):
             sf.write('%d\n' % ind)
-            mode_f.write('%d\t%s\n' % (ind, obs.mode))
+            if obs.mode is not None:
+                mode_f.write('%d\t%s\n' % (ind, obs.mode))
             start_lf.write('%d\t%0.3f %0.3f\n' % (ind, obs.start_location[0], obs.start_location[1]))
             end_lf.write('%d\t%0.3f %0.3f\n' % (ind, obs.end_location[0], obs.end_location[1]))
             start_tf.write('%d\t%s\n' % (ind, obs.start_time))
