@@ -109,6 +109,7 @@ public class Bipedal{
         model.add predicate: "FrequentTripTime", types: [ArgumentType.String, ArgumentType.String, ArgumentType.String, ArgumentType.String]
         model.add predicate: "FrequentTripMode", types: [ArgumentType.String, ArgumentType.String, ArgumentType.String]
         model.add predicate: "SegmentDay", types: [ArgumentType.UniqueID, ArgumentType.String]
+        model.add predicate: "SameDaySegment", types: [ArgumentType.UniqueID, ArgumentType.UniqueID]
     }
 
     // Functions
@@ -126,19 +127,24 @@ public class Bipedal{
         model.add rule: (Segment(S) & EndLocation(S, L) & EndTime(S, T)) >> AnchorTime(L, T), weight: 1;
         model.add rule: (Segment(S) & StartLocation(S, L) & Mode(S, M)) >> AnchorMode(L, M), weight: 1;
         model.add rule: (Segment(S) & EndLocation(S, L) & Mode(S, M)) >> AnchorMode(L, M), weight: 1;
-        model.add rule: (AnchorMode(L, M)) >> Anchor(L), weight: 1;
-        model.add rule: (AnchorTime(L, T)) >> Anchor(L), weight: 1;
-        model.add rule: (AnchorTime(L1, T) & AnchorTime(L2, T) & ~EqualLocations(L1, L2)) >> ~Anchor(L2), weight: 1;
-        // model.add rule: ~Anchor(L1), weight: 1;
+        model.add rule: (AnchorMode(L, M)) >> Anchor(L), weight: 5;
+        model.add rule: (AnchorTime(L, T)) >> Anchor(L), weight: 5;
+        // model.add rule: (AnchorTime(L1, T) & AnchorTime(L2, T) & ~EqualLocations(L1, L2)) >> ~Anchor(L2), weight: 1
+        model.add rule: ~Anchor(L1), weight: 4;
+        model.add rule: ~FrequentTrip(L1, L2), weight: 1;
 
         // Frequent Trips
         model.add rule: (Segment(S) & Anchor(L1) & Anchor(L2)
                                    & StartLocation(S, L1) & EndLocation(S, L2) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 10;
 
+        model.add rule: (SegmentDay(S1, D) & SegmentDay(S2, D)) >> SameDaySegment(S1, S2);
+
+        // model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2)
+        //                             & StartLocation(S1, L1) & EndLocation(S2, L2)) >> MissingSegment
        // TODO: Add time requirements
-        model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2) & Near(L2, L3)
-                                    & StartLocation(S1, L1) & EndLocation(S2, L3)
-                                    & SegmentDay(S1, D) & SegmentDay(S2, D) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 20;
+        // model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2)
+        //                             & StartLocation(S1, L1) & EndLocation(S2, L3)
+        //                             & SameDaySegment(S1, S2) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 20;
         // model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L1) & ~EqualLocations(L2, L3)) >> FrequentTrip(L2, L3), weight: 1;
         // model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L4) & FrequentTrip(L4, L1) & ~EqualLocations(L2, L3)) >> FrequentTrip(L2, L3), weight: 1;
         // model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2)
@@ -482,13 +488,21 @@ public class Bipedal{
         System.setOut(ps);
 
         AtomPrintStream aps = new DefaultAtomPrintStream();
-        Set anchorSet = Queries.getAllAtoms(resultsDB, FrequentTrip);
-        for (Atom a : anchorSet) {
+        Set frequentSet = Queries.getAllAtoms(resultsDB, FrequentTrip);
+        for (Atom a : frequentSet) {
             aps.printAtom(a);
         }
+        PrintStream psa = new PrintStream(new File(Paths.get(config.outputPath, "anchors.txt").toString()));
+        System.setOut(psa);
+        Set anchorSet = Queries.getAllAtoms(resultsDB, Anchor);
+        for (Atom a : anchorSet){
+            aps.printAtom(a)
+        }
+
 
         aps.close();
         ps.close();
+        psa.close();
 
         System.setOut(stdout);
         resultsDB.close();

@@ -150,6 +150,9 @@ def write_locations(locations_list, total_length, start_file, end_file):
             if location[1] in table:
                 continue
             if key in table:
+                print key
+                print table
+                print '--------'
                 corresponding_location = table[key]
                 segment = key if key < total_length/2 else location[1]
                 start, end = None, None
@@ -172,22 +175,23 @@ def cleanup(files):
 
 '''
     sample_n_values
-    sample n values from the first half (starting locations)
+    sample n values from the first half (starting loctions)
     These will then pair later on
 '''
 def sample_n_values(n, array):
+    print '%d samples' % n
     half = [val for ind, val in enumerate(array) if ind < len(array)/2]
     second_half = [val for ind, val in enumerate(array) if ind >= len(array)/2]
-    print len(half)
-    sampled_half = random.sample(half, n)
-    return sampled_half + second_half
+    # print len(half)
+    # sampled_half = random.sample(half, n)
+    return half[:n/2] + second_half[:n/2]
 
 def run(start_file, end_file):
     truncate_locations(start_file, end_file)
     locations = load_data('truncated_locations.txt')
     new_locations = run_gaussian_mixture(locations, 2, 3)
     max_cluster = max(new_locations.itervalues(), key=lambda v: len(v))
-    # max_cluster = sample_n_values(400, max_cluster)
+    max_cluster = sample_n_values(int(0.8 * len(max_cluster)), max_cluster)
     write_locations(max_cluster, len(locations), start_file, end_file)
     cleanup(['truncated_locations.txt'])
 
@@ -198,7 +202,7 @@ def run_with_assignment(start_file, end_file, noise_est=0.7):
     max_cluster = max(new_locations.itervalues(), key=lambda v: len(v))
     gaussians = int(noise_est * len(max_cluster))
     max_cluster = predict_mixture(max_cluster, gaussians, gaussians+1)
-    max_cluster = sample_n_values(400, max_cluster)
+    max_cluster = sample_n_values(500, max_cluster)
     write_locations(max_cluster, len(locations), start_file, end_file)
     cleanup(['truncated_locations.txt'])
 

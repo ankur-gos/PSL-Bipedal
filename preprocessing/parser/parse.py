@@ -85,7 +85,7 @@ def get_time_string(hour):
 
 def get_time(item):
     time = item['data']['local_dt']['hour']
-    return get_time_string(hour)
+    return get_time_string(time)
 
 def parse_segments(filename):
     with open(filename, 'rb') as rawfile:
