@@ -51,6 +51,6 @@ def build_constructed_clustered():
     ft.filter('./output/default/frequents_infer.txt', config.constructed_grouped_results_path)
 
 build_cleaned_default()
-build_constructed_default()
-build_cleaned_clustered()
-build_constructed_clustered()
+# build_constructed_default()
+# build_cleaned_clustered()
+# build_constructed_clustered()
