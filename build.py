@@ -21,7 +21,7 @@ def build_default(cleaned=True):
 def build_cleaned_default():
     cleaned_obs = parser.parse_cleaned_segments(config.data_path)
     parser.write_obs(cleaned_obs, config.seg_path, config.start_loc_path, config.end_loc_path, config.start_time_path, config.end_time_path, config.mode_path, config.segment_day_path)
-    preprocesser.run(config.start_loc_path, config.end_loc_path)
+    preprocesser.run(config.start_loc_path, config.end_loc_path, config.clusters_path)
     subprocess.call(['./run.sh'])
     ft.filter('./output/default/frequents_infer.txt', config.cleaned_frequent_results_path)
 
@@ -32,7 +32,7 @@ def build_cleaned_default():
 def build_constructed_default():
     obs = parser.parse_segments(config.data_path)
     parser.write_obs(obs, config.seg_path, config.start_loc_path, config.end_loc_path, config.start_time_path, config.end_time_path, config.mode_path, config.segment_day_path)
-    preprocesser.run(config.start_loc_path, config.end_loc_path)
+    preprocesser.run(config.start_loc_path, config.end_loc_path, config.clusters_path)
     subprocess.call(['./run.sh'])
     ft.filter('./output/default/frequents_infer.txt', config.constructed_frequent_results_path)
 

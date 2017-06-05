@@ -20,6 +20,7 @@ class LocationObs(object):
         self.start_time = None
         self.end_location = None
         self.end_time = None
+        self.segment_day = None
         self.mode = None
 
 def get_key(item):
@@ -39,7 +40,6 @@ def is_location(item):
 def is_start_segment(item):
     if get_key(item) != 'background/motion_activity':
         return False
-    # print item['data']
     return item['data']['cycling'] or item['data']['walking'] or item['data']['running'] or item['data']['automotive']
 
 def get_cleaned_mode(item):
@@ -66,8 +66,19 @@ def get_location_obs_from_csegment(item):
     location.start_time = get_time_string(start_hour)
     location.end_time = get_time_string(end_hour)
     location.mode = get_cleaned_mode(item)
+    location.segment_day = get_day(item)
     return location
 
+'''
+    get_day
+    Just going to use the metadata to determine the date of the data
+'''
+def get_day(item):
+    date_obj = item['metadata']['write_local_dt']
+    month = date_obj['month']
+    day = date_obj['day']
+    year = date_obj['year']
+    return '%d/%d/%d' % (month, day, year)
 
 def get_mode(item):
     for mode in ['cycling', 'walking', 'running', 'automotive']:
@@ -94,10 +105,10 @@ def parse_segments(filename):
         final_obs = []
         for item in ijson.items(rawfile, 'item'):
             if is_start_segment(item) and current_location is None:
-                # print 'Found start segment'
                 current_location = LocationObs()
                 current_location.start_time = get_time(item)
                 current_location.mode = get_mode(item)
+                current_location.segment_day = get_day(item)
                 buffer = None
             elif current_location is not None:
                 if is_location(item) and current_location is not None and buffer is None:
@@ -108,13 +119,13 @@ def parse_segments(filename):
                     current_location.end_location = (buffer['data']['longitude'], buffer['data']['latitude'])
                     current_location.end_time = get_time(item)
                     final_obs.append(current_location)
-                    # print final_obs
                     current_location = None
                 if is_location(item):
                     buffer = item
         return final_obs
 
 '''
+    TODO: Delete this
     Literally same as write_obs, except mode, probably should refactor later
 '''
 def write_cleaned_obs(observations, segment_path, start_loc_path, end_loc_path, start_time_path, end_time_path, mode_path, segment_day_path):
@@ -123,9 +134,10 @@ def write_cleaned_obs(observations, segment_path, start_loc_path, end_loc_path, 
             sf.write('%d\n' % ind)
             mode_f.write('%d\tcycling\n' % ind)
             start_lf.write('%d\t%0.3f %0.3f\n' % (ind, obs.start_location[0], obs.start_location[1]))
-            end_lf.write('%d\t%0.3f %0.3f\n' % (ind, obs.end_location[0], obs.end_location[1]))
+            end_lf.write('%d\t%0.3f %0.3f\n' % (ind, obs.end_location[0], obs.end_locatio[1]))
             start_tf.write('%d\t%s\n' % (ind, obs.start_time))
             end_tf.write('%d\t%s\n' % (ind, obs.end_time))
+            day_f.write('%d\t\%s\n' % (ind, obs.segment_day))
 
 def parse_cleaned_segments(filename):
     with open(filename, 'rb') as rawfile:
@@ -142,6 +154,8 @@ def write_obs(observations, segment_path, start_loc_path, end_loc_path, start_ti
             sf.write('%d\n' % ind)
             if obs.mode is not None:
                 mode_f.write('%d\t%s\n' % (ind, obs.mode))
+            if obs.segment_day is not None:
+                day_f.write('%d\t%s\n' % (ind, obs.segment_day))
             start_lf.write('%d\t%0.3f %0.3f\n' % (ind, obs.start_location[0], obs.start_location[1]))
             end_lf.write('%d\t%0.3f %0.3f\n' % (ind, obs.end_location[0], obs.end_location[1]))
             start_tf.write('%d\t%s\n' % (ind, obs.start_time))

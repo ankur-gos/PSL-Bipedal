@@ -13,6 +13,7 @@ start_time_path = '/Users/ankur/Coding/PSL-Bipedal/data/start_time_obs.txt'
 end_time_path = '/Users/ankur/Coding/PSL-Bipedal/data/end_time_obs.txt'
 segment_day_path = '/Users/ankur/Coding/PSL-Bipedal/data/segment_days_obs.txt'
 data_path = '/Users/ankur/Coding/PSL-Bipedal/preprocessing/parser/data/jay_march_2016_2_march_2017.timeline'
+clusters_path = '/Users/ankur/Coding/PSL-Bipedal/data/clusters.txt'
 
 cleaned_frequent_results_path = '/Users/ankur/Coding/PSL-Bipedal/results/cleaned_results.txt'
 constructed_frequent_results_path = '/Users/ankur/Coding/PSL-Bipedal/results/constructed_results.txt'

@@ -150,9 +150,6 @@ def write_locations(locations_list, total_length, start_file, end_file):
             if location[1] in table:
                 continue
             if key in table:
-                print key
-                print table
-                print '--------'
                 corresponding_location = table[key]
                 segment = key if key < total_length/2 else location[1]
                 start, end = None, None
@@ -165,6 +162,13 @@ def write_locations(locations_list, total_length, start_file, end_file):
                 sf.write('%d\t%f %f\n' % (segment, start[0], start[1]))
                 ef.write('%d\t%f %f\n' % (segment, end[0], end[1]))
             table[location[1]] = location[0]
+
+def write_all_locations(start_locations, end_locations, start_file, end_file):
+    with open(start_file, 'w+') as sf, open(end_file, 'w+') as ef:
+        for ind, start in enumerate(start_locations):
+            end = end_locations[ind]
+            sf.write('%d\t%f %f\n' % (ind, start[0], start[1]))
+            ef.write('%d\t%f %f\n' % (ind, end[0], end[1]))
 
 '''
     Cleanup any intermediate files
@@ -179,20 +183,60 @@ def cleanup(files):
     These will then pair later on
 '''
 def sample_n_values(n, array):
-    print '%d samples' % n
     half = [val for ind, val in enumerate(array) if ind < len(array)/2]
     second_half = [val for ind, val in enumerate(array) if ind >= len(array)/2]
-    # print len(half)
-    # sampled_half = random.sample(half, n)
     return half[:n/2] + second_half[:n/2]
 
-def run(start_file, end_file):
+def partition_data(locations, num_partitions, minimum_occurences, write_file):
+    counter = dict()
+    locations_per_partition = len(locations) / num_partitions
+    start_locations = locations[:len(locations)/2]
+    end_locations = locations[len(locations)/2:]
+    print len(start_locations)
+    print len(end_locations)
+    for i in range(0, len(start_locations)):
+        segment_string = '%f %f %f %f' % (start_locations[i][0], start_locations[i][1], end_locations[i][0], end_locations[i][1])
+        if segment_string in counter:
+            counter[segment_string] += 1
+        else:
+            counter[segment_string] = 1
+    # Given our segments, only partition trips which occur more than minimum_occurences
+    start_tuples = []
+    end_tuples = []
+    for location in counter:
+        if counter[location] < minimum_occurences:
+            continue
+        reparsed = location.split(' ')
+        reparsed_floats = [float(i) for i in reparsed]
+        start = (reparsed_floats[0], reparsed_floats[1])
+        end = (reparsed_floats[2], reparsed_floats[3])
+        print start, end
+        start_tuples.append(start)
+        end_tuples.append(end)
+    count = 0
+    part_num = 0
+    i = 0
+    with open(write_file, 'w+') as wf:
+        for ind, start in enumerate(start_tuples):
+            end = end_tuples[ind]
+            wf.write('%d\t%f %f\t%f %f\n' % (part_num, start[0], start[1], end[0], end[1]))
+            count += 1
+            if count == locations_per_partition:
+                part_num += 1
+                count = 0
+    # I'm return start_locations and end_locations for now
+    return start_locations, end_locations
+
+
+def run(start_file, end_file, clusters_file):
     truncate_locations(start_file, end_file)
     locations = load_data('truncated_locations.txt')
-    new_locations = run_gaussian_mixture(locations, 2, 3)
-    max_cluster = max(new_locations.itervalues(), key=lambda v: len(v))
-    max_cluster = sample_n_values(int(0.8 * len(max_cluster)), max_cluster)
-    write_locations(max_cluster, len(locations), start_file, end_file)
+    start_end_locs = partition_data(locations, 10, 2, clusters_file)
+    write_all_locations(start_end_locs[0], start_end_locs[1], start_file, end_file)
+    # new_locations = run_gaussian_mixture(locations, 2, 3)
+    # max_cluster = max(new_locations.itervalues(), key=lambda v: len(v))
+    # max_cluster = sample_n_values(int(0.8 * len(max_cluster)), max_cluster)
+    # write_locations(max_cluster, len(locations), start_file, end_file)
     cleanup(['truncated_locations.txt'])
 
 def run_with_assignment(start_file, end_file, noise_est=0.7):
