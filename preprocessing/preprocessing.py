@@ -246,7 +246,6 @@ def run_with_assignment(start_file, end_file, noise_est=0.7):
     max_cluster = max(new_locations.itervalues(), key=lambda v: len(v))
     gaussians = int(noise_est * len(max_cluster))
     max_cluster = predict_mixture(max_cluster, gaussians, gaussians+1)
-    max_cluster = sample_n_values(500, max_cluster)
     write_locations(max_cluster, len(locations), start_file, end_file)
     cleanup(['truncated_locations.txt'])
 

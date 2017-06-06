@@ -1,10 +1,10 @@
 /*
- * Bipedal.groovy
- * Main file for inference
+ * InferFrequentTrips.groovy
+ * Frequent Trip inference
  * Ankur Goswami, agoswam3@ucsc.edu
  */
 
-package edu.ucsc.linqs.psl.example.bipedal;
+package edu.ucsc.linqs.psl.example.infer_frequents;
 
 import edu.umd.cs.psl.application.inference.MPEInference;
 import edu.umd.cs.psl.application.learning.weight.em.HardEM;
@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 import groovy.time.TimeCategory;
 import java.nio.file.Paths
 
-public class Bipedal{
+public class InferFrequentTrips{
     private static final PARTITION_OBSERVATIONS = 0;
     private static final PARTITION_TARGETS = 1;
     private static final PARTITION_TRUTH = 2;
@@ -79,10 +79,10 @@ public class Bipedal{
     }
 
     // Constructor
-    public Bipedal(ConfigBundle cb) {
+    public InferFrequentTrips(ConfigBundle cb) {
         log = LoggerFactory.getLogger(this.class);
         config = new PSLConfig(cb);
-        ds = new RDBMSDataStore(new H2DatabaseDriver(Type.Disk, Paths.get(config.dbPath, 'bipedal').toString(), true), cb);
+        ds = new RDBMSDataStore(new H2DatabaseDriver(Type.Disk, Paths.get(config.dbPath, 'finfer').toString(), true), cb);
         model = new PSLModel(this, ds);
     }
 
@@ -96,8 +96,6 @@ public class Bipedal{
         model.add predicate: "StartTime", types: [ArgumentType.UniqueID, ArgumentType.String];
         model.add predicate: "EndTime", types: [ArgumentType.UniqueID, ArgumentType.String];
         model.add predicate: "Mode", types: [ArgumentType.UniqueID, ArgumentType.String];
-        model.add predicate: "AnchorTime", types: [ArgumentType.String, ArgumentType.String];
-        model.add predicate: "AnchorMode", types: [ArgumentType.String, ArgumentType.String];
         model.add predicate: "Anchor", types: [ArgumentType.String];
 
         // Frequent trips
@@ -105,7 +103,6 @@ public class Bipedal{
         model.add predicate: "FrequentTripTime", types: [ArgumentType.String, ArgumentType.String, ArgumentType.String, ArgumentType.String]
         model.add predicate: "FrequentTripMode", types: [ArgumentType.String, ArgumentType.String, ArgumentType.String]
         model.add predicate: "SegmentDay", types: [ArgumentType.UniqueID, ArgumentType.String]
-        model.add predicate: "SameDaySegment", types: [ArgumentType.UniqueID, ArgumentType.UniqueID]
     }
 
     // Functions
@@ -117,37 +114,26 @@ public class Bipedal{
 
     private void defineRules(){
         log.info("Defining model rules");
-        // Anchor locations
-        model.add rule: (Segment(S) & StartLocation(S, L) & StartTime(S, T)) >> AnchorTime(L, T),
-                  weight: 1;
-        model.add rule: (Segment(S) & EndLocation(S, L) & EndTime(S, T)) >> AnchorTime(L, T), weight: 1;
-        model.add rule: (Segment(S) & StartLocation(S, L) & Mode(S, M)) >> AnchorMode(L, M), weight: 1;
-        model.add rule: (Segment(S) & EndLocation(S, L) & Mode(S, M)) >> AnchorMode(L, M), weight: 1;
-        model.add rule: (AnchorMode(L, M)) >> Anchor(L), weight: 5;
-        model.add rule: (AnchorTime(L, T)) >> Anchor(L), weight: 5;
-        // model.add rule: (AnchorTime(L1, T) & AnchorTime(L2, T) & ~EqualLocations(L1, L2)) >> ~Anchor(L2), weight: 1
-        model.add rule: ~Anchor(L1), weight: 4;
-        model.add rule: ~FrequentTrip(L1, L2), weight: 1;
-
         // Frequent Trips
-        for(int i = 0; i < this.cluster_count; i++){
-            model.add rule: (Segment(S) & Anchor(L1) & Anchor(L2)
-                                    & StartLocation(S, L1) & EndLocation(S, L2) & ~EqualLocations(L1, L2) & Cluster(i, L1, L2)) >> FrequentTrip(L1, L2), weight: 10;
+        // for(int i = 0; i < this.cluster_count; i++){
+        model.add rule: ~FrequentTrip(L1, L2), weight: 20;
+        model.add rule: (Segment(S) & Anchor(L1) & Anchor(L2)
+                                & StartLocation(S, L1) & EndLocation(S, L2) & ~EqualLocations(L1, L2) ) >> FrequentTrip(L1, L2), weight: 5;
 
-            // model.add rule: (SegmentDay(S1, D) & SegmentDay(S2, D)) >> SameDaySegment(S1, S2);
-
-            // model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2)
-            //                             & StartLocation(S1, L1) & EndLocation(S2, L2)) >> MissingSegment
-        // TODO: Add time requirements
-            // model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2)
-            //                             & StartLocation(S1, L1) & EndLocation(S2, L3)
-            //                             & SameDaySegment(S1, S2) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 20;
-            // model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L1)) >> FrequentTrip(L2, L3), weight: 1;
-            // model.add rule: (Cluster(i, L2, L3) & FrequentTrip(L1, L2) & FrequentTrip(L3, L4) & FrequentTrip(L4, L1)) >> FrequentTrip(L2, L3), weight: 1;
-            // model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2)
-            //                                              & StartTime(S1, T1) & EndTime(S2, T2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 1;
-            // model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2) & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(L1, L2, M), weight: 1;
-        }
+        model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2)
+                                    & StartLocation(S1, L1) & EndLocation(S2, L2)
+                                    & SegmentDay(S1, D) & SegmentDay(S2, D) 
+                                    & StartTime(S1, T) & StartTime(S2, T) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 0.1;
+        
+        // model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L2, L3) & FrequentTrip(L3, L1) & Near(L1, L2) & Near(L2, L3) & ~Near(L1, L3)) >> ~FrequentTrip(L1, L2), weight: 20.0
+        // model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L2, L3) & FrequentTrip(L3, L1) & Near(L1, L2) & Near(L2, L3) & ~Near(L1, L3)) >> ~FrequentTrip(L2, L3), weight: 20.0
+        // model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L2, L3) & FrequentTrip(L3, L1)) >> ~FrequentTrip(L2, L3), weight: 2.0
+        // model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L1)) >> FrequentTrip(L2, L3), weight: 0.1;
+        // model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L4) & FrequentTrip(L4, L1)) >> FrequentTrip(L2, L3), weight: 0.05;
+        // model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2)
+                                                    //  & StartTime(S1, T1) & EndTime(S2, T2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 1;
+        // model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2) & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(L1, L2, M), weight: 1;
+        // }
     }
 
     public double[] deserializeLocations(String s1, String s2){
@@ -237,16 +223,11 @@ public class Bipedal{
      */
     private Set<Term> getLocations(Partition obsPartition){
         def obsDb = ds.getDatabase(obsPartition);
-        Set startLocationSet = Queries.getAllAtoms(obsDb, StartLocation);
-        Set endLocationSet = Queries.getAllAtoms(obsDb, EndLocation);
+        Set anchorSet = Queries.getAllAtoms(obsDb, Anchor);
         Set<Term> locations = new HashSet<Term>();
-        for (Atom a: startLocationSet){
+        for (Atom a: anchorSet){
             Term[] arguments = a.getArguments();
-            locations.add(arguments[1]);
-        }
-        for (Atom a: endLocationSet){
-            Term[] arguments = a.getArguments();
-            locations.add(arguments[1]);
+            locations.add(arguments[0]);
         }
         obsDb.close();
         return locations;
@@ -322,6 +303,23 @@ public class Bipedal{
         log.info("Finished loading FrequentTripModes into target partition");
     }
 
+    // private void crossSameDaySegments(Partition obsPartition, Partition targetPartition){
+    //     log.info("Started loading SameDaySegments into the database");
+    //     def obsDb = ds.getDatabase(obsPartition);
+    //     Set segmentsSet = Queries.getAllAtoms(obsDb, Segment);
+    //     Set<Term> segments = new HashSet<Term>();
+    //     for (Atom a: segmentsSet){
+    //         Term[] arguments = a.getArguments();
+    //         segments.add(arguments[1]);
+    //     }
+    //     obsDb.close();
+    //     Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>()
+    //     popMap.put(new Variable("Segment"), segments);
+    //     def targetDb = ds.getDatabase(targetsPartition);
+    //     DatabasePopulator dbPop = new DatabasePopulator(targetDb);
+    //     dbPop.populate((SameDaySegment))
+    // }
+
     /*
      * crossFrequentTripTimes
      * Same as crossFrequentTripModes but for times
@@ -341,31 +339,6 @@ public class Bipedal{
     }
 
 
-    /*
-     * crossLocationMode
-     * Access the observation partition, and cross the locations with each possible
-     * mode
-     */
-    private void crossLocationMode(Partition obsPartition, Partition targetPartition){
-        log.info("Started loading LocationMode into target partition");
-        def locations = getLocations(obsPartition);
-        def obsDb = ds.getDatabase(obsPartition);
-        Set modeSet = Queries.getAllAtoms(obsDb, Mode);
-        Set<Term> modes = new HashSet<Term>();
-        for (Atom a: modeSet){
-            Term[] arguments = a.getArguments();
-            modes.add(arguments[1]);
-        }
-        Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
-        popMap.put(new Variable("Location"), locations);
-        popMap.put(new Variable("ModeTerm"), modes);
-        def targetDb = ds.getDatabase(targetPartition);
-        DatabasePopulator dbPop = new DatabasePopulator(targetDb);
-        dbPop.populate((AnchorMode(Location, ModeTerm)).getFormula(), popMap);
-        obsDb.close();
-        targetDb.close()
-        log.info("Finished loading LocationMode into target partition");
-    }
 
     /*
      * getTimesSet
@@ -388,25 +361,7 @@ public class Bipedal{
         return times;
     }
 
-    /*
-     * crossLocationTime
-     * Access the observation partition, and cross the locations with each possible
-     * time of day
-     */
-    private void crossLocationTime(Partition obsPartition, Partition targetPartition){
-        log.info("Started loading LocationTimes into target partition");
-        def locations = getLocations(obsPartition);
-        Set<Term> times = getTimesSet(obsPartition);
-        Map<Variable, Set<Term>> popMap = new HashMap<Variable, Set<Term>>();
-        popMap.put(new Variable("Location"), locations);
-        popMap.put(new Variable("Time"), times);
-        def targetDb = ds.getDatabase(targetPartition);
-        DatabasePopulator dbPop = new DatabasePopulator(targetDb);
-        dbPop.populate((AnchorTime(Location, Time)).getFormula(), popMap);
-        targetDb.close();
-        log.info("Finished loading LocationTime into target partition");
-    }
-
+    
     private void loadData(Partition obsPartition, Partition targetsPartition, Partition truthPartition) {
         log.info("Loading data into database");
 
@@ -435,29 +390,13 @@ public class Bipedal{
         inserter = ds.getInserter(SegmentDay, obsPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "segment_days_obs.txt").toString());
 
+        inserter = ds.getInserter(Anchor, obsPartition);
+        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "grounded_anchors.txt").toString());
+
         // Run the cross functions to fill the targets partition
-        crossLocationTime(obsPartition, targetsPartition);
-        crossLocationMode(obsPartition, targetsPartition);
-        crossAnchor(obsPartition, targetsPartition);
-        // crossFrequentTripTimes(obsPartition, targetsPartition);
+        crossFrequentTripTimes(obsPartition, targetsPartition);
         crossFrequentTrips(obsPartition, targetsPartition);
-        // crossFrequentTripModes(obsPartition, targetsPartition);
-    }
-
-    private void runEM(Partition obsPartition, Partition targetsPartition){
-        log.info("Starting EM");
-        Date infStart = new Date();
-        HashSet closed = new HashSet<StandardPredicate>([Cluster, StartLocation,EndLocation,StartTime,EndTime,Segment,Mode, SegmentDay]);
-        Database inferDB = ds.getDatabase(targetsPartition);
-        Database obsDB = ds.getDatabase(obsPartition, closed);
-        ExpectationMaximization em = new HardEM(model, inferDB, obsDB, config.cb);
-        em.learn();
-        em.close();
-        inferDB.close();
-        obsDB.close();
-
-        log.info("Finished EM in {}", TimeCategory.minus(new Date(), infStart))
-
+        crossFrequentTripModes(obsPartition, targetsPartition);
     }
 
     // Run inference
@@ -465,7 +404,7 @@ public class Bipedal{
         log.info("Starting inference");
 
         Date infStart = new Date();
-        HashSet closed = new HashSet<StandardPredicate>([StartLocation,EndLocation,StartTime,EndTime,Segment,Mode, SegmentDay]);
+        HashSet closed = new HashSet<StandardPredicate>([Anchor,StartLocation,EndLocation,StartTime,EndTime,Segment,Mode,SegmentDay]);
         Database inferDB = ds.getDatabase(targetsPartition, closed, obsPartition);
         MPEInference mpe = new MPEInference(model, inferDB, config.cb);
         FullInferenceResult result = mpe.mpeInference();
@@ -493,17 +432,10 @@ public class Bipedal{
         for (Atom a : frequentSet) {
             aps.printAtom(a);
         }
-        PrintStream psa = new PrintStream(new File(Paths.get(config.outputPath, "anchors.txt").toString()));
-        System.setOut(psa);
-        Set anchorSet = Queries.getAllAtoms(resultsDB, Anchor);
-        for (Atom a : anchorSet){
-            aps.printAtom(a)
-        }
 
 
         aps.close();
         ps.close();
-        psa.close();
 
         System.setOut(stdout);
         resultsDB.close();
@@ -556,7 +488,7 @@ public class Bipedal{
      * @return ConfigBundle with the appropriate properties set
      */
     public static ConfigBundle populateConfigBundle(String[] args) {
-        ConfigBundle cb = ConfigManager.getManager().getBundle("bipedal");
+        ConfigBundle cb = ConfigManager.getManager().getBundle("finfer");
         if (args.length > 0) {
             cb.setProperty('experiment.data.path', args[0]);
         }
@@ -569,7 +501,7 @@ public class Bipedal{
      */
     public static void main(String[] args){
         ConfigBundle cb = populateConfigBundle(args);
-        Bipedal bp = new Bipedal(cb);
+        InferFrequentTrips bp = new InferFrequentTrips(cb);
         bp.run();
     }
 }

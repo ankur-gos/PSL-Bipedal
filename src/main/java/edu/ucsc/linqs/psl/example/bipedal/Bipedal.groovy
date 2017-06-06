@@ -88,8 +88,6 @@ public class Bipedal{
 
     // Predicates
     private void definePredicates(){
-        model.add predicate: "Cluster", types: [ArgumentType.Integer, ArgumentType.String, ArgumentType.String]
-
         model.add predicate: "Segment", types: [ArgumentType.UniqueID];
         model.add predicate: "StartLocation", types: [ArgumentType.UniqueID, ArgumentType.String];
         model.add predicate: "EndLocation", types: [ArgumentType.UniqueID, ArgumentType.String];
@@ -99,13 +97,6 @@ public class Bipedal{
         model.add predicate: "AnchorTime", types: [ArgumentType.String, ArgumentType.String];
         model.add predicate: "AnchorMode", types: [ArgumentType.String, ArgumentType.String];
         model.add predicate: "Anchor", types: [ArgumentType.String];
-
-        // Frequent trips
-        model.add predicate: "FrequentTrip", types: [ArgumentType.String, ArgumentType.String];
-        model.add predicate: "FrequentTripTime", types: [ArgumentType.String, ArgumentType.String, ArgumentType.String, ArgumentType.String]
-        model.add predicate: "FrequentTripMode", types: [ArgumentType.String, ArgumentType.String, ArgumentType.String]
-        model.add predicate: "SegmentDay", types: [ArgumentType.UniqueID, ArgumentType.String]
-        model.add predicate: "SameDaySegment", types: [ArgumentType.UniqueID, ArgumentType.UniqueID]
     }
 
     // Functions
@@ -125,29 +116,8 @@ public class Bipedal{
         model.add rule: (Segment(S) & EndLocation(S, L) & Mode(S, M)) >> AnchorMode(L, M), weight: 1;
         model.add rule: (AnchorMode(L, M)) >> Anchor(L), weight: 5;
         model.add rule: (AnchorTime(L, T)) >> Anchor(L), weight: 5;
-        // model.add rule: (AnchorTime(L1, T) & AnchorTime(L2, T) & ~EqualLocations(L1, L2)) >> ~Anchor(L2), weight: 1
-        model.add rule: ~Anchor(L1), weight: 4;
-        model.add rule: ~FrequentTrip(L1, L2), weight: 1;
-
-        // Frequent Trips
-        for(int i = 0; i < this.cluster_count; i++){
-            model.add rule: (Segment(S) & Anchor(L1) & Anchor(L2)
-                                    & StartLocation(S, L1) & EndLocation(S, L2) & ~EqualLocations(L1, L2) & Cluster(i, L1, L2)) >> FrequentTrip(L1, L2), weight: 10;
-
-            // model.add rule: (SegmentDay(S1, D) & SegmentDay(S2, D)) >> SameDaySegment(S1, S2);
-
-            // model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2)
-            //                             & StartLocation(S1, L1) & EndLocation(S2, L2)) >> MissingSegment
-        // TODO: Add time requirements
-            // model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2)
-            //                             & StartLocation(S1, L1) & EndLocation(S2, L3)
-            //                             & SameDaySegment(S1, S2) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 20;
-            // model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L3, L1)) >> FrequentTrip(L2, L3), weight: 1;
-            // model.add rule: (Cluster(i, L2, L3) & FrequentTrip(L1, L2) & FrequentTrip(L3, L4) & FrequentTrip(L4, L1)) >> FrequentTrip(L2, L3), weight: 1;
-            // model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2)
-            //                                              & StartTime(S1, T1) & EndTime(S2, T2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 1;
-            // model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2) & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(L1, L2, M), weight: 1;
-        }
+        model.add rule: (AnchorTime(L1, T) & AnchorTime(L2, T) & ~EqualLocations(L1, L2)) >> ~Anchor(L2), weight: 1
+        model.add rule: ~Anchor(L1), weight: 8;
     }
 
     public double[] deserializeLocations(String s1, String s2){
@@ -410,11 +380,8 @@ public class Bipedal{
     private void loadData(Partition obsPartition, Partition targetsPartition, Partition truthPartition) {
         log.info("Loading data into database");
 
-        Inserter inserter = ds.getInserter(Cluster, obsPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "clusters.txt").toString());
-
         // Fill all of the obs partition from files
-        inserter = ds.getInserter(Segment, obsPartition);
+        Inserter inserter = ds.getInserter(Segment, obsPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "segment_obs.txt").toString());
 
         inserter = ds.getInserter(StartLocation, obsPartition);
@@ -432,40 +399,19 @@ public class Bipedal{
         inserter = ds.getInserter(Mode, obsPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "mode_obs.txt").toString());
 
-        inserter = ds.getInserter(SegmentDay, obsPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "segment_days_obs.txt").toString());
-
         // Run the cross functions to fill the targets partition
         crossLocationTime(obsPartition, targetsPartition);
         crossLocationMode(obsPartition, targetsPartition);
         crossAnchor(obsPartition, targetsPartition);
-        // crossFrequentTripTimes(obsPartition, targetsPartition);
-        crossFrequentTrips(obsPartition, targetsPartition);
-        // crossFrequentTripModes(obsPartition, targetsPartition);
     }
 
-    private void runEM(Partition obsPartition, Partition targetsPartition){
-        log.info("Starting EM");
-        Date infStart = new Date();
-        HashSet closed = new HashSet<StandardPredicate>([Cluster, StartLocation,EndLocation,StartTime,EndTime,Segment,Mode, SegmentDay]);
-        Database inferDB = ds.getDatabase(targetsPartition);
-        Database obsDB = ds.getDatabase(obsPartition, closed);
-        ExpectationMaximization em = new HardEM(model, inferDB, obsDB, config.cb);
-        em.learn();
-        em.close();
-        inferDB.close();
-        obsDB.close();
-
-        log.info("Finished EM in {}", TimeCategory.minus(new Date(), infStart))
-
-    }
 
     // Run inference
     private FullInferenceResult runInference(Partition obsPartition, Partition targetsPartition) {
         log.info("Starting inference");
 
         Date infStart = new Date();
-        HashSet closed = new HashSet<StandardPredicate>([StartLocation,EndLocation,StartTime,EndTime,Segment,Mode, SegmentDay]);
+        HashSet closed = new HashSet<StandardPredicate>([StartLocation,EndLocation,StartTime,EndTime,Segment,Mode]);
         Database inferDB = ds.getDatabase(targetsPartition, closed, obsPartition);
         MPEInference mpe = new MPEInference(model, inferDB, config.cb);
         FullInferenceResult result = mpe.mpeInference();
@@ -485,14 +431,7 @@ public class Bipedal{
 
         // Temporarily redirect stdout.
         PrintStream stdout = System.out;
-        PrintStream ps = new PrintStream(new File(Paths.get(config.outputPath, "frequents_infer.txt").toString()));
-        System.setOut(ps);
-
         AtomPrintStream aps = new DefaultAtomPrintStream();
-        Set frequentSet = Queries.getAllAtoms(resultsDB, FrequentTrip);
-        for (Atom a : frequentSet) {
-            aps.printAtom(a);
-        }
         PrintStream psa = new PrintStream(new File(Paths.get(config.outputPath, "anchors.txt").toString()));
         System.setOut(psa);
         Set anchorSet = Queries.getAllAtoms(resultsDB, Anchor);
@@ -502,7 +441,6 @@ public class Bipedal{
 
 
         aps.close();
-        ps.close();
         psa.close();
 
         System.setOut(stdout);

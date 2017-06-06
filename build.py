@@ -40,8 +40,15 @@ def build_cleaned_clustered():
     cleaned_obs = parser.parse_cleaned_segments(config.data_path)
     parser.write_obs(cleaned_obs, config.seg_path, config.start_loc_path, config.end_loc_path, config.start_time_path, config.end_time_path, config.mode_path, config.segment_day_path)
     preprocesser.run_with_assignment(config.start_loc_path, config.end_loc_path)
+    build_cleaned_clustered_nopreprocess()
+
+def build_cleaned_clustered_nopreprocess():
     subprocess.call(['./run.sh'])
+    ft.filter('./output/default/anchors.txt', './anchors_results')
+    ft.filter_top_n('./output/default/anchors.txt', config.anchors_path, 50)
+    subprocess.call(['./run_infer_frequents.sh'])
     ft.filter('./output/default/frequents_infer.txt', config.cleaned_grouped_results_path)
+    ft.create_geosheets_csv(config.cleaned_grouped_results_path, 'geosheets_cleaned.txt')
 
 def build_constructed_clustered():
     obs = parser.parse_segments(config.data_path)
@@ -50,7 +57,8 @@ def build_constructed_clustered():
     subprocess.call(['./run.sh'])
     ft.filter('./output/default/frequents_infer.txt', config.constructed_grouped_results_path)
 
-build_cleaned_default()
+# build_cleaned_default()
 # build_constructed_default()
 # build_cleaned_clustered()
 # build_constructed_clustered()
+build_cleaned_clustered_nopreprocess()
