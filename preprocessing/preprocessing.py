@@ -239,7 +239,7 @@ def run(start_file, end_file, clusters_file):
     # write_locations(max_cluster, len(locations), start_file, end_file)
     cleanup(['truncated_locations.txt'])
 
-def run_with_assignment(start_file, end_file, noise_est=0.7):
+def run_with_assignment(start_file, end_file, noise_est=0.8):
     truncate_locations(start_file, end_file)
     locations = load_data('truncated_locations.txt')
     new_locations = run_gaussian_mixture(locations, 2, 5)

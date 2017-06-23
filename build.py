@@ -49,6 +49,10 @@ def build_cleaned_clustered_nopreprocess():
     subprocess.call(['./run_infer_frequents.sh'])
     ft.filter('./output/default/frequents_infer.txt', config.cleaned_grouped_results_path)
     ft.create_geosheets_csv(config.cleaned_grouped_results_path, 'geosheets_cleaned.txt')
+    ft.filter_top_n_frequents('./output/default/frequents_infer.txt', config.frequents_path, 50)
+    subprocess.call(['./run_infer_info.sh'])
+    ft.filter('./output/default/frequent_times_infer.txt', config.trip_times_path)
+    ft.filter('./output/default/frequent_modes_infer.txt', config.trip_modes_path)
 
 def build_constructed_clustered():
     obs = parser.parse_segments(config.data_path)
@@ -57,8 +61,5 @@ def build_constructed_clustered():
     subprocess.call(['./run.sh'])
     ft.filter('./output/default/frequents_infer.txt', config.constructed_grouped_results_path)
 
-# build_cleaned_default()
-# build_constructed_default()
 # build_cleaned_clustered()
-# build_constructed_clustered()
 build_cleaned_clustered_nopreprocess()

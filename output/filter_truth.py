@@ -11,9 +11,18 @@ def filter_top_n(filename, write_file, n):
         lines = filter_lines(filename)
         sublist = lines[:n]
         for line in sublist:
-            anchor = re.search(r'ANCHOR\(\'(.*)\'.*', line[0], re.M|re.I)
+            anchor = re.search(r'.*\(\'(.*)\'.*', line[0], re.M|re.I)
             if anchor is not None:
                 write_f.write('%s\n' % anchor.group(1))
+
+def filter_top_n_frequents(filename, write_file, n):
+    with open(write_file, 'w+') as write_f:
+        lines = filter_lines(filename)
+        sublist = lines[:n]
+        for line in sublist:
+            frequent_trip = re.search(r'.*\'(.*)\', \'(.*)\'.*', line[0], re.M|re.I)
+            if frequent_trip is not None:
+                write_f.write('%s\t%s\n' % (frequent_trip.group(1), frequent_trip.group(2)))
 
 def create_geosheets_csv(locations_file, write_file):
     with open(locations_file, 'r') as lf, open(write_file, 'w+') as wf:
