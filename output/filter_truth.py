@@ -49,8 +49,3 @@ def filter_lines(filename):
         lines.sort(key=lambda x: x[1])
         lines.reverse()
         return lines
-
-# if len(sys.argv) < 3:
-#     raise Exception('Usage: python filter_truth.py FILTER_FILENAME WRITE_FILENAME')
-
-# filter(sys.argv[1], sys.argv[2])
