@@ -34,3 +34,20 @@ preprocessing/parser/jay_march_2016_2_march_2017.timeline
 data/
 preprocessing/parser/data/
 *.pyc
+
+# Results #
+###########
+
+anchors_results
+geosheets_cleaned.txt
+partitions.txt
+results.zip
+frequents_cleaned_segments.txt
+frequents_custom_segments.txt
+cleaned_grouped_results.1.txt
+cleaned_grouped_results.txt
+constructed_grouped_results.txt
+constructed_results.txt
+grounded_anchors_50.txt
+trips_modes.txt
+trips_times.txt
