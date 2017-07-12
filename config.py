@@ -62,37 +62,30 @@ anchors_path = make_path('grounded_anchors.txt')
 # Grounded Frequent Trips
 frequents_path = make_path('grounded_frequents.txt')
 
+num_anchors = 50
 
+num_frequent_trips = 50
 
-
-
-
-'''
-    Intermediate Results settings
-'''
+write_anchors = make_path('write_anchors.txt')
 
 '''
-    Processing Settings
+    Results settings
 '''
 
-write_anchors
+# Frequent Trip Times
 
-data_directory = './data/'
-seg_path = '/Users/ankur/Coding/PSL-Bipedal/data/segment_obs.txt'
-mode_path = '/Users/ankur/Coding/PSL-Bipedal/data/mode_obs.txt'
-start_loc_path = '/Users/ankur/Coding/PSL-Bipedal/data/start_location_obs.txt'
-end_loc_path = '/Users/ankur/Coding/PSL-Bipedal/data/end_location_obs.txt'
-start_time_path = '/Users/ankur/Coding/PSL-Bipedal/data/start_time_obs.txt'
-end_time_path = '/Users/ankur/Coding/PSL-Bipedal/data/end_time_obs.txt'
-segment_day_path = '/Users/ankur/Coding/PSL-Bipedal/data/segment_days_obs.txt'
-clusters_path = '/Users/ankur/Coding/PSL-Bipedal/data/clusters.txt'
-anchors_path = '/Users/ankur/Coding/PSL-Bipedal/data/grounded_anchors.txt'
-frequents_path = '/Users/ankur/Coding/PSL-Bipedal/data/grounded_frequents.txt'
-trip_times_path = '/Users/ankur/Coding/PSL-Bipedal/results/trips_times.txt'
-trip_modes_path = '/Users/ankur/Coding/PSL-Bipedal/results/trips_modes.txt'
+trip_times_path = make_results_path('trips_times.txt')
 
-cleaned_frequent_results_path = '/Users/ankur/Coding/PSL-Bipedal/results/cleaned_results.txt'
-constructed_frequent_results_path = '/Users/ankur/Coding/PSL-Bipedal/results/constructed_results.txt'
-cleaned_grouped_results_path = '/Users/ankur/Coding/PSL-Bipedal/results/cleaned_grouped_results.txt'
-constructed_grouped_results_path = '/Users/ankur/Coding/PSL-Bipedal/results/constructed_grouped_results.txt'
+# Frequent Trip Modes
 
+trip_modes_path = make_results_path('trips_modes.txt')
+
+# Raw results paths
+
+cleaned_frequent_results_path = make_results_path('cleaned_results.txt')
+
+constructed_frequent_results_path = make_results_path('constructed_results.txt')
+
+cleaned_grouped_results_path = make_results_path('cleaned_grouped_results.txt')
+
+constructed_grouped_results_path = make_results_path('constructed_grouped_results.txt')

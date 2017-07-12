@@ -123,7 +123,6 @@ public class InferTripInfo{
 
         model.add rule: (FrequentTripTime(L1, L2, T, T) & FrequentTripTime(L3, L4, T, T) & LongerTrip(L1, L2, L3, L4)) >> ~FrequentTripTime(L3, L4, T, T), weight: 1;
 
-        model.add rule: (FrequentTripTime(L1, L2, T, T) & FrequentTripTime(L3, L4, T, T) & LongerTrip(L1, L2, L3, L4)), weight: 0.1;
     }
 
     /*
