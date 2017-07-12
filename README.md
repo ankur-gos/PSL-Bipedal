@@ -2,10 +2,17 @@
 
 Creating a model for finding frequent commute information.
 
+## Requirements
+- Python 2.7
+
 ## How to run
 
 1. Setup config.py, set important paths
-2. Run build.py
+2. Install python packages from requirements.txt
+```
+pip install -r requirements.txt
+```
+3. Run build.py
 
 ```
 usage: build.py [-h] [-n] [-g]
