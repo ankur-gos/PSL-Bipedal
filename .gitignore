@@ -51,3 +51,5 @@ constructed_results.txt
 grounded_anchors_50.txt
 trips_modes.txt
 trips_times.txt
+
+env
