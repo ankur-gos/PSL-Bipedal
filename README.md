@@ -2,10 +2,21 @@
 
 Creating a model for finding frequent commute information.
 
-## Pipeline
+## How to run
 
-1. Setup config.py, setting data locations
-2. Run parser.py
-3. Run preprocessing.py on the parsed data
+1. Setup config.py, set important paths
+2. Run build.py
+
+```
+usage: build.py [-h] [-n] [-g]
+
+Run inference to find out frequent trips
+
+optional arguments:
+  -h, --help          show this help message and exit
+  -n, --nopreprocess  Do not do preprocessing, just run inference
+                      (preprocessing often needs to be done only once).
+  -g, --geosheets     Create a geosheets friendly anchor output
+```
 
 
