@@ -5,7 +5,7 @@
 '''
 
 import config
-import preprocessing.parser.parse as parser
+import preprocessing.parser.parse as ps
 import preprocessing.preprocessing as preprocesser
 import subprocess
 import output.filter_truth as ft
@@ -18,8 +18,8 @@ import argparse
 '''
 def build_cleaned_clustered(create_geosheets):
     # Parser cleaned segments, write them to data files
-    cleaned_obs = parser.parse_cleaned_segments(config.data_path)
-    parser.write_obs(cleaned_obs, config.seg_path, config.start_loc_path, config.end_loc_path, config.start_time_path, 
+    cleaned_obs = ps.parse_cleaned_segments(config.data_path)
+    ps.write_obs(cleaned_obs, config.seg_path, config.start_loc_path, config.end_loc_path, config.start_time_path, 
     config.end_time_path, config.mode_path, config.segment_day_path)
     # Cluster to coalesce locations
     preprocesser.run_with_assignment(config.start_loc_path, config.end_loc_path)
