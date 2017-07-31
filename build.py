@@ -11,6 +11,7 @@ import subprocess
 import output.filter_truth as ft
 import sys
 import argparse
+import ParseGeosheets as pg
 
 '''
     build_cleaned_clustered
@@ -52,6 +53,9 @@ def build_cleaned_clustered_nopreprocess(create_geosheets):
     # Filter and output results
     ft.filter('./output/default/frequent_times_infer.txt', config.trip_times_path)
     ft.filter('./output/default/frequent_modes_infer.txt', config.trip_modes_path)
+
+    if create_geosheets:
+        pg.write()
 
 parser = argparse.ArgumentParser(description='Run inference to find out frequent trips')
 parser.add_argument('-n', '--nopreprocess', action='store_true', help='Do not do preprocessing, just run inference (preprocessing often needs to be done only once).')
