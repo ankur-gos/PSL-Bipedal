@@ -17,7 +17,7 @@ data_directory = './data'
 results_directory = './results'
 
 # Source data, change to point to data file
-data_path = '/Users/ankur/Coding/PSL-Bipedal/culler_processed'
+data_path = '/Users/ankur/Coding/PSL-Bipedal/preprocessing/parser/data/jay_march_2016_2_march_2017.timeline' #'/Users/ankur/Coding/PSL-Bipedal/culler_processed'
 
 def join_dir_path(directory, name):
     return '/'.join([directory, name])
@@ -74,9 +74,9 @@ write_anchors = make_path('write_anchors.txt')
 
 # Geosheets names and locations
 
-mode_geosheet_path = make_results_path('mode_geosheet.csv')
+mode_geosheet_path = make_results_path('mode_pujara_geosheet.csv')
 
-time_geosheet_path = make_results_path('time_geosheet.csv')
+time_geosheet_path = make_results_path('time_pujara_geosheet.csv')
 
 # Frequent Trip Times
 

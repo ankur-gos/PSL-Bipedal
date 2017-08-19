@@ -110,6 +110,8 @@ public class InferFrequentTrips{
         model.add function: "EqualLocations", implementation: new LocationComparison();
         model.add function: "Near", implementation: new ManhattanNear();
         model.add function: "LeftOf", implementation: new LeftSort();
+		model.add function: "Before", implementation: new BeforeCompare();
+		model.add function: "SimilarTimes", implementation: new SimilarTimes();
     }
 
     private void defineRules(){
@@ -123,7 +125,7 @@ public class InferFrequentTrips{
         model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2)
                                     & StartLocation(S1, L1) & EndLocation(S2, L2)
                                     & SegmentDay(S1, D) & SegmentDay(S2, D) 
-                                    & StartTime(S1, T) & EndTime(S2, T) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 0.1;
+                                    & StartTime(S1, T1) & EndTime(S2, T2) & Before(T1, T2) & SimilarTimes(T1, T2) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 0.1;
         
         // model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L2, L3) & FrequentTrip(L3, L1) & Near(L1, L2) & Near(L2, L3) & ~Near(L1, L3) & LeftOf(L1, L3)) >> FrequentTrip(L1, L3), weight: 1.0
         // model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L2, L3) & FrequentTrip(L3, L1) & Near(L1, L2) & Near(L2, L3) & ~Near(L1, L3)) >> ~FrequentTrip(L2, L3), weight: 20.0
@@ -144,6 +146,65 @@ public class InferFrequentTrips{
         double x2 = Double.parseDouble(split2[0]);
         double y2 = Double.parseDouble(split2[1]);
         return [x1, y1, x2, y2];
+    }
+
+		public double[] deserializeTimes(String s1, String s2){
+				String[] split1 = s1.split(":");
+				String[] split2 = s2.split(":");
+				double x1 = Double.parseDouble(split1[0]);
+        double y1 = Double.parseDouble(split1[1]);
+        double x2 = Double.parseDouble(split2[0]);
+        double y2 = Double.parseDouble(split2[1]);
+        return [x1, y1, x2, y2];
+ 
+		}
+
+    class BeforeCompare implements ExternalFunction {
+        @Override
+        public int getArity(){
+            return 2;
+        }
+
+        @Override
+        public ArgumentType[] getArgumentTypes(){
+            return [ArgumentType.String, ArgumentType.String];
+        }
+
+        @Override
+        public double getValue(ReadOnlyDatabase db, GroundTerm... args){
+            String s1 = args[0].getValue();
+            String s2 = args[1].getValue();
+            double[] values = deserializeTimes(s1, s2);
+						if(values[0] < values[2])
+							return 1;
+						else if(values[0] == values[2])
+							return values[1] <= values[3] ? 1 : 0;
+						return 0;
+        }
+    }
+
+		class SimilarTimes implements ExternalFunction {
+
+        @Override
+        public int getArity(){
+            return 2;
+        }
+
+        @Override
+        public ArgumentType[] getArgumentTypes(){
+            return [ArgumentType.String, ArgumentType.String];
+        }
+
+        @Override
+        public double getValue(ReadOnlyDatabase db, GroundTerm... args){
+            String s1 = args[0].getValue();
+            String s2 = args[1].getValue();
+            double[] values = deserializeTimes(s1, s2);
+						double tdist = (values[0] - values[2]).abs();
+						if(tdist <= 1)
+							return 1;
+            return 1 / tdist;
+        }
     }
 
     class ManhattanNear implements ExternalFunction {
@@ -209,9 +270,9 @@ public class InferFrequentTrips{
             String s1 = args[0].getValue();
             String s2 = args[1].getValue();
             double[] values = deserializeLocations(s1, s2);
-            log.info(Double.toString(values[0]));
-            log.info(Double.toString(values[2]));
-            log.info('------------------------')
+            //log.info(Double.toString(values[0]));
+            //log.info(Double.toString(values[2]));
+            //log.info('------------------------')
             return values[0] - values[2];
         }
     }
@@ -394,9 +455,9 @@ public class InferFrequentTrips{
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "grounded_anchors.txt").toString());
 
         // Run the cross functions to fill the targets partition
-        crossFrequentTripTimes(obsPartition, targetsPartition);
+        //crossFrequentTripTimes(obsPartition, targetsPartition);
         crossFrequentTrips(obsPartition, targetsPartition);
-        crossFrequentTripModes(obsPartition, targetsPartition);
+        //crossFrequentTripModes(obsPartition, targetsPartition);
     }
 
     // Run inference

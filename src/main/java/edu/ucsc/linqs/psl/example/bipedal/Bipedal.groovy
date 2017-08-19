@@ -194,9 +194,9 @@ public class Bipedal{
             String s1 = args[0].getValue();
             String s2 = args[1].getValue();
             double[] values = deserializeLocations(s1, s2);
-            log.info(Double.toString(values[0]));
-            log.info(Double.toString(values[2]));
-            log.info('------------------------')
+            //log.info(Double.toString(values[0]));
+            //log.info(Double.toString(values[2]));
+            //log.info('------------------------')
             return values[0] - values[2];
         }
     }

@@ -109,19 +109,24 @@ public class InferTripInfo{
     // Functions
     private void defineFunctions(){
         model.add function: "LongerTrip", implementation: new TripComparison();
+        model.add function: "Before", implementation: new BeforeCompare();
+		model.add function: "SimilarTimes", implementation: new SimilarTimes();
     }
 
     private void defineRules(){
         log.info("Defining model rules");
-        model.add rule: ~FrequentTripMode(L1, L2, M), weight: 10;
-        model.add rule: ~FrequentTripTime(L1, L2, T1, T2), weight: 10;
+        model.add rule: ~FrequentTripMode(L1, L2, M), weight: 20;
+        model.add rule: ~FrequentTripTime(L1, L2, T1, T2), weight: 20;
 
         model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2)
-                         & StartTime(S1, T) & EndTime(S2, T)) >> FrequentTripTime(L1, L2, T, T), weight: 0.1;
+                         & StartTime(S1, T1) & EndTime(S2, T2) & Before(T1, T2) & SimilarTimes(T1, T2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 0.1;
         model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2) 
-                         & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(L1, L2, M), weight: 0.1;
+                        & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(L1, L2, M), weight: 0.1;
 
-        model.add rule: (FrequentTripTime(L1, L2, T, T) & FrequentTripTime(L3, L4, T, T) & LongerTrip(L1, L2, L3, L4)) >> ~FrequentTripTime(L3, L4, T, T), weight: 1;
+        model.add rule: (FrequentTripMode(L1, L2, M) & FrequentTripMode(L2, L3, M) & FrequentTripTime(L1, L2, T1, T2) & FrequentTripTime(L2, L3, T2, T3)) >> FrequentTripTime(L1, L3, T1, T3), weight: 1;
+
+        model.add rule: ~FrequentTripTime(L1, L2, T, T), weight: 10;
+        //model.add rule: (FrequentTripTime(L1, L2, T1, T2) & FrequentTripTime(L3, L4, T1, T2) & LongerTrip(L1, L2, L3, L4)) >> ~FrequentTripTime(L3, L4, T1, T2), weight: 1;
 
     }
 
@@ -136,6 +141,56 @@ public class InferTripInfo{
         double x2 = Double.parseDouble(split2[0]);
         double y2 = Double.parseDouble(split2[1]);
         return [x1, y1, x2, y2];
+    }
+
+
+
+    class BeforeCompare implements ExternalFunction {
+        @Override
+        public int getArity(){
+            return 2;
+        }
+
+        @Override
+        public ArgumentType[] getArgumentTypes(){
+            return [ArgumentType.String, ArgumentType.String];
+        }
+
+        @Override
+        public double getValue(ReadOnlyDatabase db, GroundTerm... args){
+            String s1 = args[0].getValue();
+            String s2 = args[1].getValue();
+            double[] values = deserializeTimes(s1, s2);
+						if(values[0] < values[2])
+							return 1;
+						else if(values[0] == values[2])
+							return values[1] <= values[3] ? 1 : 0;
+						return 0;
+        }
+    }
+
+		class SimilarTimes implements ExternalFunction {
+
+        @Override
+        public int getArity(){
+            return 2;
+        }
+
+        @Override
+        public ArgumentType[] getArgumentTypes(){
+            return [ArgumentType.String, ArgumentType.String];
+        }
+
+        @Override
+        public double getValue(ReadOnlyDatabase db, GroundTerm... args){
+            String s1 = args[0].getValue();
+            String s2 = args[1].getValue();
+            double[] values = deserializeTimes(s1, s2);
+						double tdist = (values[0] - values[2]).abs();
+						if(tdist <= 1)
+							return 1;
+            return 1 / tdist;
+        }
     }
 
     class TripComparison implements ExternalFunction{
@@ -328,10 +383,10 @@ public class InferTripInfo{
         System.setOut(ps);
 
         AtomPrintStream aps = new DefaultAtomPrintStream();
-        Set frequentSet = Queries.getAllAtoms(resultsDB, FrequentTripMode);
+        /*Set frequentSet = Queries.getAllAtoms(resultsDB, FrequentTripMode);
         for (Atom a : frequentSet) {
             aps.printAtom(a);
-        }
+        }*/
 
         PrintStream pstime = new PrintStream(new File(Paths.get(config.outputPath, "frequent_times_infer.txt").toString()));
         System.setOut(pstime)
@@ -384,7 +439,7 @@ public class InferTripInfo{
         loadData(obsPartition, targetsPartition, truthPartition);
         runInference(obsPartition, targetsPartition);
         writeOutput(targetsPartition);
-        evalResults(targetsPartition, truthPartition);
+        //evalResults(targetsPartition, truthPartition);
 
         ds.close();
     }

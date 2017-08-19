@@ -59,8 +59,8 @@ def get_location_obs_from_csegment(item):
     location = LocationObs()
     start_loc = item['data']['start_loc']['coordinates']
     end_loc = item['data']['end_loc']['coordinates']
-    start_hour = item['data']['start_local_dt']['hour']
-    end_hour = item['data']['end_local_dt']['hour']
+    start_hour = item['data']['start_local_dt']
+    end_hour = item['data']['end_local_dt']
     location.start_location = (start_loc[0], start_loc[1])
     location.end_location = (end_loc[0], start_loc[1])
     location.start_time = get_time_string(start_hour)
@@ -85,7 +85,17 @@ def get_mode(item):
         if item['data'][mode]:
             return mode
 
-def get_time_string(hour):
+def get_time_string(item):
+    val = str(int(round(item['minute'], -1))).zfill(2)
+    #val = '00'
+    #if item['minute'] >= 8 or item['minute'] < 22:
+    #    val = '15'
+    #if item['minute'] >= 23 or item['minute'] < 37:
+    #    val = '30'
+    #if item['minute'] >= 38 or item['minute'] < 52:
+    #    val = '45'
+    return str(item['hour']) + ':' + val
+'''
     if hour >= 3 and hour <= 10:
         return 'Morning'
     if hour > 10 and hour < 16:
@@ -93,6 +103,7 @@ def get_time_string(hour):
     if hour >= 16 and hour < 20:
         return 'Evening'
     return 'Night'
+'''
 
 def get_time(item):
     time = item['data']['local_dt']['hour']
