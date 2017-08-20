@@ -6,37 +6,59 @@
 
 package edu.ucsc.linqs.psl.example.bipedal;
 
-import edu.umd.cs.psl.application.inference.MPEInference;
-import edu.umd.cs.psl.application.learning.weight.em.HardEM;
-import edu.umd.cs.psl.config.ConfigBundle;
-import edu.umd.cs.psl.config.ConfigManager;
-import edu.umd.cs.psl.database.Database;
-import edu.umd.cs.psl.database.DatabasePopulator;
-import edu.umd.cs.psl.database.DataStore;
-import edu.umd.cs.psl.database.loading.Inserter;
-import edu.umd.cs.psl.database.Partition;
-import edu.umd.cs.psl.application.learning.weight.em.ExpectationMaximization;
-import edu.umd.cs.psl.database.rdbms.driver.H2DatabaseDriver;
-import edu.umd.cs.psl.database.rdbms.driver.H2DatabaseDriver.Type;
-import edu.umd.cs.psl.database.rdbms.RDBMSDataStore;
-import edu.umd.cs.psl.database.ReadOnlyDatabase;
-import edu.umd.cs.psl.evaluation.result.FullInferenceResult;
-import edu.umd.cs.psl.evaluation.resultui.printer.AtomPrintStream;
-import edu.umd.cs.psl.evaluation.resultui.printer.DefaultAtomPrintStream;
-import edu.umd.cs.psl.evaluation.statistics.ContinuousPredictionComparator;
-import edu.umd.cs.psl.evaluation.statistics.DiscretePredictionComparator;
-import edu.umd.cs.psl.evaluation.statistics.DiscretePredictionStatistics;
-import edu.umd.cs.psl.groovy.PSLModel;
-import edu.umd.cs.psl.model.argument.ArgumentType;
-import edu.umd.cs.psl.model.atom.Atom;
-import edu.umd.cs.psl.model.predicate.StandardPredicate;
-import edu.umd.cs.psl.ui.loading.InserterUtils;
-import edu.umd.cs.psl.util.database.Queries;
-import edu.umd.cs.psl.model.function.ExternalFunction;
-import edu.umd.cs.psl.model.argument.GroundTerm;
-import edu.umd.cs.psl.model.argument.Term;
+//*import org.linqs.psl.application.inference.MPEInference;
+//import org.linqs.psl.application.learning.weight.em.HardEM;
+//import org.linqs.psl.config.ConfigBundle;
+//import org.linqs.psl.config.ConfigManager;
+//import org.linqs.psl.database.Database;
+//import org.linqs.psl.database.DatabasePopulator;
+//import org.linqs.psl.database.DataStore;
+//import org.linqs.psl.database.loading.Inserter;
+//import org.linqs.psl.database.Partition;
+//import org.linqs.psl.application.learning.weight.em.ExpectationMaximization;
+//import org.linqs.psl.database.rdbms.driver.H2DatabaseDriver;
+//import org.linqs.psl.database.rdbms.driver.H2DatabaseDriver.Type;
+//import org.linqs.psl.database.rdbms.RDBMSDataStore;
+//import org.linqs.psl.database.ReadOnlyDatabase;
+//import org.linqs.psl.evaluation.result.FullInferenceResult;
+//import org.linqs.psl.evaluation.resultui.printer.AtomPrintStream;
+//import org.linqs.psl.evaluation.resultui.printer.DefaultAtomPrintStream;
+//import org.linqs.psl.evaluation.statistics.ContinuousPredictionComparator;
+//import org.linqs.psl.evaluation.statistics.DiscretePredictionComparator;
+//import org.linqs.psl.evaluation.statistics.DiscretePredictionStatistics;
+//import org.linqs.psl.groovy.PSLModel;
+//import org.linqs.psl.model.argument.ConstantType;
+//import org.linqs.psl.model.atom.Atom;
+//import org.linqs.psl.model.predicate.StandardPredicate;
+//import org.linqs.psl.ui.loading.InserterUtils;
+//import org.linqs.psl.util.database.Queries;
+
+import org.linqs.psl.model.function.ExternalFunction;
+import org.linqs.psl.model.term.Constant;
+//import org.linqs.psl.model.argument.Term;
+import org.linqs.psl.model.term.Variable;
+import org.linqs.psl.model.term.Term;
+import org.linqs.psl.application.inference.MPEInference;
+import org.linqs.psl.config.ConfigBundle;
+import org.linqs.psl.config.ConfigManager;
+import org.linqs.psl.database.Database;
+import org.linqs.psl.database.DatabasePopulator;
+import org.linqs.psl.database.DataStore;
+import org.linqs.psl.database.Partition;
+import org.linqs.psl.database.Queries;
+import org.linqs.psl.database.ReadOnlyDatabase;
+import org.linqs.psl.database.loading.Inserter;
+import org.linqs.psl.database.rdbms.driver.H2DatabaseDriver;
+import org.linqs.psl.database.rdbms.driver.H2DatabaseDriver.Type;
+import org.linqs.psl.database.rdbms.RDBMSDataStore;
+import org.linqs.psl.groovy.PSLModel;
+import org.linqs.psl.model.atom.Atom;
+import org.linqs.psl.model.predicate.StandardPredicate;
+import org.linqs.psl.model.term.ConstantType;
+import org.linqs.psl.utils.dataloading.InserterUtils;
+import org.linqs.psl.utils.evaluation.printing.AtomPrintStream;
+import org.linqs.psl.utils.evaluation.printing.DefaultAtomPrintStream;
 import java.util.HashSet;
-import edu.umd.cs.psl.model.argument.Variable;
 import java.lang.Double;
 
 import org.slf4j.Logger;
@@ -46,9 +68,9 @@ import groovy.time.TimeCategory;
 import java.nio.file.Paths
 
 public class Bipedal{
-    private static final PARTITION_OBSERVATIONS = 0;
-    private static final PARTITION_TARGETS = 1;
-    private static final PARTITION_TRUTH = 2;
+    private static final String PARTITION_OBSERVATIONS = "observations";
+    private static final String PARTITION_TARGETS = "targets";
+    private static final String PARTITION_TRUTH = "truth";
 
     private Logger log;
     private DataStore ds;
@@ -88,15 +110,15 @@ public class Bipedal{
 
     // Predicates
     private void definePredicates(){
-        model.add predicate: "Segment", types: [ArgumentType.UniqueID];
-        model.add predicate: "StartLocation", types: [ArgumentType.UniqueID, ArgumentType.String];
-        model.add predicate: "EndLocation", types: [ArgumentType.UniqueID, ArgumentType.String];
-        model.add predicate: "StartTime", types: [ArgumentType.UniqueID, ArgumentType.String];
-        model.add predicate: "EndTime", types: [ArgumentType.UniqueID, ArgumentType.String];
-        model.add predicate: "Mode", types: [ArgumentType.UniqueID, ArgumentType.String];
-        model.add predicate: "AnchorTime", types: [ArgumentType.String, ArgumentType.String];
-        model.add predicate: "AnchorMode", types: [ArgumentType.String, ArgumentType.String];
-        model.add predicate: "Anchor", types: [ArgumentType.String];
+        model.add predicate: "Segment", types: [ConstantType.UniqueID];
+        model.add predicate: "StartLocation", types: [ConstantType.UniqueID, ConstantType.String];
+        model.add predicate: "EndLocation", types: [ConstantType.UniqueID, ConstantType.String];
+        model.add predicate: "StartTime", types: [ConstantType.UniqueID, ConstantType.String];
+        model.add predicate: "EndTime", types: [ConstantType.UniqueID, ConstantType.String];
+        model.add predicate: "Mode", types: [ConstantType.UniqueID, ConstantType.String];
+        model.add predicate: "AnchorTime", types: [ConstantType.String, ConstantType.String];
+        model.add predicate: "AnchorMode", types: [ConstantType.String, ConstantType.String];
+        model.add predicate: "Anchor", types: [ConstantType.String];
     }
 
     // Functions
@@ -139,12 +161,12 @@ public class Bipedal{
         }
 
         @Override
-        public ArgumentType[] getArgumentTypes(){
-            return [ArgumentType.String, ArgumentType.String];
+        public ConstantType[] getArgumentTypes(){
+            return [ConstantType.String, ConstantType.String].toArray();
         }
 
         @Override
-        public double getValue(ReadOnlyDatabase db, GroundTerm... args){
+        public double getValue(ReadOnlyDatabase db, Constant... args){
             String s1 = args[0].getValue();
             String s2 = args[1].getValue();
             double[] values = deserializeLocations(s1, s2);
@@ -165,12 +187,12 @@ public class Bipedal{
         }
 
         @Override
-        public ArgumentType[] getArgumentTypes(){
-            return [ArgumentType.String, ArgumentType.String];
+        public ConstantType[] getArgumentTypes(){
+            return [ConstantType.String, ConstantType.String].toArray();
         }
 
         @Override
-        public double getValue(ReadOnlyDatabase db, GroundTerm... args){
+        public double getValue(ReadOnlyDatabase db, Constant... args){
             String s1 = args[0].getValue();
             String s2 = args[1].getValue();
             double[] values = deserializeLocations(s1, s2);
@@ -185,12 +207,12 @@ public class Bipedal{
         }
 
         @Override
-        public ArgumentType[] getArgumentTypes(){
-            return [ArgumentType.String, ArgumentType.String];
+        public ConstantType[] getArgumentTypes(){
+            return [ConstantType.String, ConstantType.String].toArray();
         }
 
         @Override
-        public double getValue(ReadOnlyDatabase db, GroundTerm... args){
+        public double getValue(ReadOnlyDatabase db, Constant... args){
             String s1 = args[0].getValue();
             String s2 = args[1].getValue();
             double[] values = deserializeLocations(s1, s2);
@@ -408,43 +430,35 @@ public class Bipedal{
 
 
     // Run inference
-    private FullInferenceResult runInference(Partition obsPartition, Partition targetsPartition) {
+    private void runInference(Partition obsPartition, Partition targetsPartition) {
         log.info("Starting inference");
 
         Date infStart = new Date();
         HashSet closed = new HashSet<StandardPredicate>([StartLocation,EndLocation,StartTime,EndTime,Segment,Mode]);
         Database inferDB = ds.getDatabase(targetsPartition, closed, obsPartition);
         MPEInference mpe = new MPEInference(model, inferDB, config.cb);
-        FullInferenceResult result = mpe.mpeInference();
+        mpe.mpeInference();
 
         inferDB.close();
         mpe.close();
 
         log.info("Finished inference in {}", TimeCategory.minus(new Date(), infStart));
-        return result;
     }
 
     /**
      * Writes the inference outputs to a file
      */
     private void writeOutput(Partition targetsPartition) {
-        Database resultsDB = ds.getDatabase(targetsPartition);
-
-        // Temporarily redirect stdout.
-        PrintStream stdout = System.out;
-        AtomPrintStream aps = new DefaultAtomPrintStream();
-        PrintStream psa = new PrintStream(new File(Paths.get(config.outputPath, "anchors.txt").toString()));
-        System.setOut(psa);
-        Set anchorSet = Queries.getAllAtoms(resultsDB, Anchor);
-        for (Atom a : anchorSet){
-            aps.printAtom(a)
+	Database resultsDB = ds.getDatabase(targetsPartition);
+        PrintStream ps = new PrintStream(new File(Paths.get(config.outputPath, "anchors.txt").toString()));
+        AtomPrintStream aps = new DefaultAtomPrintStream(ps);
+        Set atomSet = Queries.getAllAtoms(resultsDB, Anchor);
+        for (Atom a : atomSet) {
+            aps.printAtom(a);
         }
 
-
         aps.close();
-        psa.close();
-
-        System.setOut(stdout);
+        ps.close();
         resultsDB.close();
     }
 
@@ -452,18 +466,6 @@ public class Bipedal{
      * Evaluates the results of inference versus expected truth values
      */
     private void evalResults(Partition targetsPartition, Partition truthPartition) {
-        Database resultsDB = ds.getDatabase(targetsPartition, [Anchor] as Set);
-        Database truthDB = ds.getDatabase(truthPartition, [Anchor] as Set);
-        DiscretePredictionComparator dpc = new DiscretePredictionComparator(resultsDB);
-        dpc.setBaseline(truthDB);
-        DiscretePredictionStatistics stats = dpc.compare(Anchor);
-        log.info(
-                "Stats: precision {}, recall {}",
-                stats.getPrecision(DiscretePredictionStatistics.BinaryClass.POSITIVE),
-                stats.getRecall(DiscretePredictionStatistics.BinaryClass.POSITIVE));
-
-        resultsDB.close();
-        truthDB.close();
     }
 
     /**
@@ -473,9 +475,9 @@ public class Bipedal{
     public void run() {
         log.info("Running experiment {}", config.experimentName);
 
-        Partition obsPartition = new Partition(PARTITION_OBSERVATIONS);
-        Partition targetsPartition = new Partition(PARTITION_TARGETS);
-        Partition truthPartition = new Partition(PARTITION_TRUTH);
+        Partition obsPartition = ds.getPartition(PARTITION_OBSERVATIONS);
+        Partition targetsPartition = ds.getPartition(PARTITION_TARGETS);
+        Partition truthPartition = ds.getPartition(PARTITION_TRUTH);
 
         definePredicates();
         defineFunctions();

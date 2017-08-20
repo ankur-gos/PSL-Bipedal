@@ -17,7 +17,7 @@ data_directory = './data'
 results_directory = './results'
 
 # Source data, change to point to data file
-data_path = '/Users/ankur/Coding/PSL-Bipedal/preprocessing/parser/data/jay_march_2016_2_march_2017.timeline' #'/Users/ankur/Coding/PSL-Bipedal/culler_processed'
+data_path = 'jay_march_2016_2_march_2017.timeline' #'/Users/ankur/Coding/PSL-Bipedal/culler_processed'
 
 def join_dir_path(directory, name):
     return '/'.join([directory, name])

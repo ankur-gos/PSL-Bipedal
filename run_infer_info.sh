@@ -48,7 +48,7 @@ function buildClasspath() {
 }
 
 function run() {
-   java -Xmx14g -d64 -cp ./target/classes:$(cat ${CLASSPATH_FILE}) ${TARGET_CLASS}
+   java -Xmx30g -d64 -cp ./target/classes:$(cat ${CLASSPATH_FILE}) ${TARGET_CLASS}
    if [[ "$?" -ne 0 ]]; then
       err 'Failed to run'
       exit 60

@@ -1,15 +1,25 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>edu.ucsc.linqs.psl.example</groupId>
+  <groupId>org.linqs.psl.example</groupId>
   <artifactId>bipedal</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
   <dependencies>
     <dependency>
-      <groupId>edu.umd.cs</groupId>
+      <groupId>org.linqs</groupId>
       <artifactId>psl-groovy</artifactId>
-      <version>1.2.1</version>
+      <version>2.0.0</version> 
+    </dependency>
+    <dependency>
+      <groupId>org.linqs</groupId>
+      <artifactId>psl-dataloading</artifactId>
+      <version>1.0.0</version> 
+    </dependency>
+    <dependency>
+      <groupId>org.linqs</groupId>
+      <artifactId>psl-evaluation</artifactId>
+      <version>1.0.0</version> 
     </dependency>
     <dependency>
       <groupId>commons-cli</groupId>
@@ -34,18 +44,7 @@
       </releases>
       <id>psl-releases</id>
       <name>PSL Releases</name>
-      <url>https://scm.umiacs.umd.edu/maven/lccd/content/repositories/psl-releases/</url>
-      <layout>default</layout>
-    </repository>
-    <repository>
-      <releases>
-	<enabled>true</enabled>
-	<updatePolicy>daily</updatePolicy>
-	<checksumPolicy>fail</checksumPolicy>
-      </releases>
-      <id>psl-thirdparty</id>
-      <name>PSL Third Party</name>
-      <url>https://scm.umiacs.umd.edu/maven/lccd/content/repositories/psl-thirdparty/</url>
+      <url>http://maven.linqs.org/maven/repositories/psl-releases/</url>
       <layout>default</layout>
     </repository>
   </repositories>
@@ -72,21 +71,6 @@
 	</dependencies>
       </plugin>
       <plugin>
-	<groupId>com.bluetrainsoftware.maven</groupId>
-	<artifactId>groovydoc-maven-plugin</artifactId>
-	<version>1.3</version>
-	<executions>
-	  <execution>
-	    <id>attach-docs</id>
-	    <phase>package</phase>
-	    <goals>
-	      <goal>attach-docs</goal>
-	    </goals>
-	  </execution>
-	</executions>
-      </plugin>
-
-      <plugin>
 	<groupId>org.apache.maven.plugins</groupId>
 	<artifactId>maven-eclipse-plugin</artifactId>
 	<version>2.8</version>
@@ -106,6 +90,20 @@
 	<configuration>
 	  <enableAssertions>false</enableAssertions>
 	</configuration>
+      </plugin>
+      <plugin>
+	<groupId>com.bluetrainsoftware.maven</groupId>
+	<artifactId>groovydoc-maven-plugin</artifactId>
+	<version>1.3</version>
+	<executions>
+	  <execution>
+	    <id>attach-docs</id>
+	    <phase>package</phase>
+	    <goals>
+	      <goal>attach-docs</goal>
+	    </goals>
+	  </execution>
+	</executions>
       </plugin>
     </plugins>
   </build>
