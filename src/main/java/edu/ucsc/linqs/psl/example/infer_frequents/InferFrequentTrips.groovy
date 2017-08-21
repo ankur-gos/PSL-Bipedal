@@ -418,7 +418,7 @@ public class InferFrequentTrips{
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
         dbPop.populate((FrequentTripTime(Location1, Location2, Time1, Time2)).getFormula(), popMap);
-        //targetDb.close();
+        targetDb.close();
         log.info("Finished loading FrequentTripTimes into target partition");
     }
 
@@ -476,7 +476,7 @@ public class InferFrequentTrips{
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "grounded_anchors.txt").toString());
 
         // Run the cross functions to fill the targets partition
-        crossFrequentTripTimes(obsPartition, targetsPartition);
+        //crossFrequentTripTimes(obsPartition, targetsPartition);
         crossFrequentTrips(obsPartition, targetsPartition);
         //crossFrequentTripModes(obsPartition, targetsPartition);
     }
