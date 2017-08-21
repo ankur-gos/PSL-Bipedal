@@ -48,14 +48,15 @@ def build_cleaned_clustered_nopreprocess(create_geosheets):
     ft.filter_top_n_frequents('./output/default/frequents_infer.txt', config.frequents_path, config.num_frequent_trips)
 
     # Infer trip information
-    subprocess.call(['./run_infer_info.sh'])
+    #subprocess.call(['./run_infer_info.sh'])
+
 
     # Filter and output results
-    ft.filter('./output/default/frequent_times_infer.txt', config.trip_times_path)
-    ft.filter('./output/default/frequent_modes_infer.txt', config.trip_modes_path)
+    #ft.filter('./output/default/frequent_times_infer.txt', config.trip_times_path)
+    #ft.filter('./output/default/frequent_modes_infer.txt', config.trip_modes_path)
 
-    if create_geosheets:
-        pg.write()
+    #if create_geosheets:
+    #    pg.write()
 
 parser = argparse.ArgumentParser(description='Run inference to find out frequent trips')
 parser.add_argument('-n', '--nopreprocess', action='store_true', help='Do not do preprocessing, just run inference (preprocessing often needs to be done only once).')

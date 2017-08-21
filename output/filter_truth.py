@@ -26,10 +26,13 @@ def filter_top_n_frequents(filename, write_file, n):
 
 def create_geosheets_csv(locations_file, write_file):
     with open(locations_file, 'r') as lf, open(write_file, 'w+') as wf:
-        for line in lf:
+        lines = filter_lines(locations_file)
+        sublist = lines[:50]
+        wf.write('Location\tType\n')
+        for line in sublist:
             found = re.search(r'.*\'(.*) (.*)\'.*\'(.*) (.*)\'.*', line, re.M|re.I)
             if found is not None:
-                wf.write('%s,%s | %s,%s\n' % (found.group(2), found.group(1), found.group(4), found.group(3)))
+                wf.write('%s,%s | %s,%s\tline\n' % (found.group(2), found.group(1), found.group(4), found.group(3)))
 
 
 def filter(filename, write_file):
