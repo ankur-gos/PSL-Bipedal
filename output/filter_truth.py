@@ -24,13 +24,22 @@ def filter_top_n_frequents(filename, write_file, n):
             if frequent_trip is not None:
                 write_f.write('%s\t%s\n' % (frequent_trip.group(1), frequent_trip.group(2)))
 
+def filter_top_n_modes_trips(times_filename, modes_filename,  times_wf, modes_wf, n):
+    with open(write_file, 'w+') as write_f:
+        lines = filter_lines(filename)
+        sublist = lines[:n]
+        for line in sublist:
+            frequent_trip = re.search(r'.*\'(.*)\', \'(.*)\'.*', line[0], re.M|re.I)
+            if frequent_trip is not None:
+                write_f.write('%s\t%s\n' % (frequent_trip.group(1), frequent_trip.group(2)))
+
 def create_geosheets_csv(locations_file, write_file):
     with open(locations_file, 'r') as lf, open(write_file, 'w+') as wf:
         lines = filter_lines(locations_file)
         sublist = lines[:50]
         wf.write('Location\tType\n')
         for line in sublist:
-            found = re.search(r'.*\'(.*) (.*)\'.*\'(.*) (.*)\'.*', line, re.M|re.I)
+            found = re.search(r'.*\'(.*) (.*)\'.*\'(.*) (.*)\'.*', line[0], re.M|re.I)
             if found is not None:
                 wf.write('%s,%s | %s,%s\tline\n' % (found.group(2), found.group(1), found.group(4), found.group(3)))
 

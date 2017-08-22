@@ -20,7 +20,7 @@ import ParseGeosheets as pg
 def build_cleaned_clustered(create_geosheets):
     # Parser cleaned segments, write them to data files
     cleaned_obs = ps.parse_cleaned_segments(config.data_path)
-    ps.write_obs(cleaned_obs, config.seg_path, config.start_loc_path, config.end_loc_path, config.start_time_path, 
+    ps.write_obs(cleaned_obs, config.seg_path, config.start_loc_path, config.end_loc_path, config.start_time_path,
     config.end_time_path, config.mode_path, config.segment_day_path)
     # Cluster to coalesce locations
     preprocesser.run_with_assignment(config.start_loc_path, config.end_loc_path)
@@ -47,16 +47,23 @@ def build_cleaned_clustered_nopreprocess(create_geosheets):
 
     ft.filter_top_n_frequents('./output/default/frequents_infer.txt', config.frequents_path, config.num_frequent_trips)
 
-    # Infer trip information
-    #subprocess.call(['./run_infer_info.sh'])
+    #Infer trip information
+    subprocess.call(['./run_infer_info.sh'])
 
 
     # Filter and output results
-    #ft.filter('./output/default/frequent_times_infer.txt', config.trip_times_path)
-    #ft.filter('./output/default/frequent_modes_infer.txt', config.trip_modes_path)
+    ft.filter('./output/default/frequent_times_infer.txt', config.trip_times_path)
+    ft.filter('./output/default/frequent_modes_infer.txt', config.trip_modes_path)
 
-    #if create_geosheets:
-    #    pg.write()
+    if create_geosheets:
+        pg.write()
+
+    pg.filter_top_n_modes_trips()
+    subprocess.call(['./run_infer_merge.sh'])
+
+    ft.filter('./output/default/frequent_modes_times_infer.txt', config.trip_modes_times_path)
+    if create_geosheets:
+        pg.write_final()
 
 parser = argparse.ArgumentParser(description='Run inference to find out frequent trips')
 parser.add_argument('-n', '--nopreprocess', action='store_true', help='Do not do preprocessing, just run inference (preprocessing often needs to be done only once).')
