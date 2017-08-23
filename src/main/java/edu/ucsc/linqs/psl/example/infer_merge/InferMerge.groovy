@@ -140,11 +140,12 @@ public class InferMerge{
     private void defineRules(){
         log.info("Defining model rules");
         model.add rule: ~FrequentTripModeTime(L1, L2, T1, T2, M), weight: 20;
-        model.add rule: ~FrequentTripModeTime(L1, L2, T, T, M), weight: 10;
-
-        model.add rule: (FrequentTripTime(L1, L2, T1, T2) & FrequentTripMode(L1, L2, M)) >> FrequentTripModeTime(L1, L2, T1, T2, M), weight: 1;
         
-        model.add rule: (FrequentTripMode(L1, L2, M) & FrequentTripMode(L2, L3, M) & FrequentTripTime(L1, L2, T1, T2) & FrequentTripTime(L2, L3, T2, T3)) >> FrequentTripModeTime(L1, L3, T1, T3, M), weight: 1;
+        model.add rule: (FrequentTripTime(L1, L2, T1, T2) & FrequentTripMode(L1, L2, M)) >> FrequentTripModeTime(L1, L2, M, T1, T2), weight: 0.1;
+        
+        model.add rule: (FrequentTripMode(L1, L2, M) & FrequentTripMode(L2, L3, M) & FrequentTripTime(L1, L2, T1, T2) & FrequentTripTime(L2, L3, T2, T3)) >> FrequentTripModeTime(L1, L3, M, T1, T3), weight: 0.1;
+        model.add rule: ~FrequentTripModeTime(L1, L2, M, T, T), weight: 10;
+
     }
 
     /*
@@ -331,10 +332,11 @@ public class InferMerge{
             startLocations.add(arguments[0]);
         }
         for (Atom a: frequentTimes){
+            log.info("1");
             Term[] arguments = a.getArguments();
             startLocations.add(arguments[0]);
         }
-        popMap.put(new Variable("StartLocation"), startLocations);
+        popMap.put(new Variable("StartLocation1"), startLocations);
 
         Set<Term> endLocations = new HashSet<Term>();
         for (Atom a: frequentMode){
@@ -345,34 +347,41 @@ public class InferMerge{
             Term[] arguments = a.getArguments();
             endLocations.add(arguments[1]);
         }
-        popMap.put(new Variable("EndLocation"), endLocations);
+        popMap.put(new Variable("EndLocation1"), endLocations);
 
         Set<Term> modes = new HashSet<Term>();
         for (Atom a: frequentMode){
             Term[] arguments = a.getArguments();
             modes.add(arguments[2]);
         }
-        popMap.put(new Variable("Mode"), modes);
+        popMap.put(new Variable("Mode1"), modes);
 
         Set<Term> startTimes = new HashSet<Term>();
-        for (Atom a: frequentTime){
+        for (Atom a: frequentTimes){
             Term[] arguments = a.getArguments();
             startTimes.add(arguments[2]);
         }
-        popMap.put(new Variable("StartTime"), startTimes);
+        popMap.put(new Variable("StartTime1"), startTimes);
 
 
         Set<Term> endTimes = new HashSet<Term>();
-        for (Atom a: frequentTime){
+        for (Atom a: frequentTimes){
             Term[] arguments = a.getArguments();
             endTimes.add(arguments[3]);
         }
-        popMap.put(new Variable("EndTime"), endTimes);
+        popMap.put(new Variable("EndTime1"), endTimes);
 
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
-        dbPop.populate((FrequentTripModeTime(Location1, Location2, Mode, StartTime, EndTime)).getFormula(), popMap);
+        dbPop.populate((FrequentTripModeTime(StartLocation1, EndLocation1, Mode1, StartTime1, EndTime1)).getFormula(), popMap);
         Set s = Queries.getAllAtoms(targetDb, FrequentTripModeTime);
+        
+        //AtomPrintStream aps = new DefaultAtomPrintStream();
+        //for (Atom a : s) {
+        //    aps.printAtom(a);
+        //}
+
+        //aps.close();
         log.info('There are ' + s.size() + ' FrequentTripModeTime in target partition.')
         obsDb.close();
         targetDb.close();
