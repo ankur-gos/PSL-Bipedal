@@ -518,16 +518,16 @@ public class InferMerge{
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "segment_days_obs.txt").toString());
 
         inserter = ds.getInserter(Anchor, obsPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "grounded_anchors.txt").toString());
+        InserterUtils.loadDelimitedDataTruth(inserter, Paths.get(config.dataPath, "grounded_anchors.txt").toString());
 
         inserter = ds.getInserter(FrequentTrip, obsPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "grounded_frequents.txt").toString());
+        InserterUtils.loadDelimitedDataTruth(inserter, Paths.get(config.dataPath, "grounded_frequents.txt").toString());
 
         inserter = ds.getInserter(FrequentTripTime, obsPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "grounded_frequent_times.txt").toString());
+        InserterUtils.loadDelimitedDataTruth(inserter, Paths.get(config.dataPath, "grounded_frequent_times.txt").toString());
 
         inserter = ds.getInserter(FrequentTripMode, obsPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "grounded_frequent_modes.txt").toString());
+        InserterUtils.loadDelimitedDataTruth(inserter, Paths.get(config.dataPath, "grounded_frequent_modes.txt").toString());
         // Run the cross functions to fill the targets partition
         crossFrequentModeTrips(obsPartition, targetsPartition);
     }

@@ -399,10 +399,10 @@ public class InferTripInfo{
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "segment_days_obs.txt").toString());
 
         inserter = ds.getInserter(Anchor, obsPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "grounded_anchors.txt").toString());
+        InserterUtils.loadDelimitedDataTruth(inserter, Paths.get(config.dataPath, "grounded_anchors.txt").toString());
 
         inserter = ds.getInserter(FrequentTrip, obsPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "grounded_frequents.txt").toString());
+        InserterUtils.loadDelimitedDataTruth(inserter, Paths.get(config.dataPath, "grounded_frequents.txt").toString());
         // Run the cross functions to fill the targets partition
         /*inserter = ds.getInserter(FrequentTripTime, targetsPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "fake_trips.txt").toString());

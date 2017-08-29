@@ -474,7 +474,7 @@ public class InferFrequentTrips{
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "segment_days_obs.txt").toString());
 
         inserter = ds.getInserter(Anchor, obsPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "grounded_anchors.txt").toString());
+        InserterUtils.loadDelimitedDataTruth(inserter, Paths.get(config.dataPath, "grounded_anchors.txt").toString());
 
         // Run the cross functions to fill the targets partition
         //crossFrequentTripTimes(obsPartition, targetsPartition);

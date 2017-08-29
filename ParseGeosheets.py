@@ -15,7 +15,7 @@ def filter_top_n_modes_trips():
             found = re.search(r'.*\'(.*) (.*)\'.*\'(.*) (.*)\'.*\'(.*)\'.*\[(.*)\].*', line, re.M|re.I)
             if found is not None:
                 if float(found.group(6)) > 0.75:
-                    gm_outf.write('%s %s\t%s %s\t%s\n' % (found.group(2), found.group(1), found.group(4), found.group(3), found.group(5)))
+                    gm_outf.write('%s %s\t%s %s\t%s\t%f\n' % (found.group(2), found.group(1), found.group(4), found.group(3), found.group(5), float(found.group(6))))
                     i += 2
 
         i = 0
@@ -23,7 +23,7 @@ def filter_top_n_modes_trips():
             found = re.search(r'.*\'(.*) (.*)\'.*\'(.*) (.*)\'.*\'(.*)\'.*\'(.*)\'.*\[(.*)\].*', line, re.M|re.I)
             if found is not None:
                 if float(found.group(7)) > 0.75:
-                    gt_outf.write('%s %s\t%s %s\t%s\t%s\n' % (found.group(2), found.group(1), found.group(4), found.group(3), found.group(5), found.group(6)))
+                    gt_outf.write('%s %s\t%s %s\t%s\t%s\t%f\n' % (found.group(2), found.group(1), found.group(4), found.group(3), found.group(5), found.group(6), float(found.group(7))))
                     i += 2
 
 def write_final():
