@@ -38,6 +38,9 @@ def build_cleaned_clustered_nopreprocess(create_geosheets):
         ft.filter('./output/default/anchors.txt', './anchors_results')
     ft.filter_top_n('./output/default/anchors.txt', config.anchors_path, config.num_anchors)
 
+    if create_geosheets:
+        ft.anchor_geosheets('./output/default/anchors.txt', './anchors_geosheet.csv')
+
     # Infer Frequent Trips
     subprocess.call(['./run_infer_frequents.sh'])
     ft.filter('./output/default/frequents_infer.txt', config.cleaned_grouped_results_path)
@@ -50,7 +53,9 @@ def build_cleaned_clustered_nopreprocess(create_geosheets):
     #Infer trip information
     subprocess.call(['./run_infer_info.sh'])
 
+    filter_and_merge(create_geosheets)
 
+def filter_and_merge(create_geosheets):
     # Filter and output results
     ft.filter('./output/default/frequent_times_infer.txt', config.trip_times_path)
     ft.filter('./output/default/frequent_modes_infer.txt', config.trip_modes_path)
@@ -68,9 +73,13 @@ def build_cleaned_clustered_nopreprocess(create_geosheets):
 parser = argparse.ArgumentParser(description='Run inference to find out frequent trips')
 parser.add_argument('-n', '--nopreprocess', action='store_true', help='Do not do preprocessing, just run inference (preprocessing often needs to be done only once).')
 parser.add_argument('-g', '--geosheets', action='store_true', help='Create a geosheets friendly anchor output')
+parser.add_argument('-f', '--filtermerge', action='store_true', help='Run the filtering and merging process after inferring trip information')
 args = parser.parse_args()
 geosheets = args.geosheets
-if(args.nopreprocess):
+if args.nopreprocess:
     build_cleaned_clustered_nopreprocess(geosheets)
+elif args.filtermerge:
+    filter_and_merge(geosheets)
 else:
     build_cleaned_clustered(geosheets)
+

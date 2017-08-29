@@ -135,18 +135,27 @@ public class InferMerge{
         model.add function: "LongerTrip", implementation: new TripComparison();
         model.add function: "Before", implementation: new BeforeCompare();
 		model.add function: "SimilarTimes", implementation: new SimilarTimes();
+        model.add function: "SlowerTransport", implementation: new RankTransport();
     }
 
     private void defineRules(){
         log.info("Defining model rules");
-        model.add rule: ~FrequentTripModeTime(L1, L2, T1, T2, M), weight: 20;
+        model.add rule: ~FrequentTripModeTime(L1, L2, T1, T2, M), weight: 5;
+        model.add rule: ~FrequentTripModeTime(L, L, T1, T2, M), weight: 10000;
         
-        model.add rule: (FrequentTripTime(L1, L2, T1, T2) & FrequentTripMode(L1, L2, M)) >> FrequentTripModeTime(L1, L2, M, T1, T2), weight: 0.1;
+        model.add rule: (FrequentTripTime(L1, L2, T1, T2) & FrequentTripMode(L1, L2, M)) >> FrequentTripModeTime(L1, L2, M, T1, T2), weight: 1;
         
-        model.add rule: (FrequentTripMode(L1, L2, M) & FrequentTripMode(L2, L3, M) & FrequentTripTime(L1, L2, T1, T2) & FrequentTripTime(L2, L3, T2, T3)) >> FrequentTripModeTime(L1, L3, M, T1, T3), weight: 0.1;
-        model.add rule: ~FrequentTripModeTime(L1, L2, M, T, T), weight: 10;
+        model.add rule: (FrequentTripMode(L1, L2, M) & FrequentTripMode(L2, L3, M) & FrequentTripTime(L1, L2, T1, T2) & FrequentTripTime(L2, L3, T1, T3) & Before(T2, T3)) >> FrequentTripModeTime(L1, L3, M, T1, T3), weight: 5;
 
-    }
+        model.add rule: (FrequentTripMode(L1, L2, M) & FrequentTripMode(L2, L3, M) & FrequentTripTime(L1, L2, T1, T2) & FrequentTripTime(L2, L3, T2, T3)) >> FrequentTripModeTime(L1, L3, M, T1, T3), weight: 3;
+
+        //model.add rule: (FrequentTripTime(L1, L2, T1, T2) & FrequentTripTime(L1, L3, T1, T3) & Before(T2, T3)) & FrequentTripMode(L1, L3, M) >> FrequentTripModeTime(L1, L3, M, T1, T3), weight: 1;
+
+
+        //model.add rule: (FrequentTripModeTime(L1, L2, M, T1, T2) & SimilarTimes(T1, T2)) >> FrequentTripModeTime(L1, L2, M, T1, T2), weight: 1;
+        model.add rule: (FrequentTripTime(L1, L2, T1, T2) & FrequentTripTime(L1, L2, T3, T4) & SimilarTimes(T1, T3) & SimilarTimes(T2, T4) & Before(T1, T3) & Before(T3, T4) & FrequentTripMode(L1, L2, M)) >> ~FrequentTripModeTime(L1, L2, M, T2, T4), weight: 1000;
+        model.add rule: (FrequentTripMode(L1, L2, M1) & FrequentTripMode(L1, L2, M2) & SlowerTransport(M1, M2) & FrequentTripTime(L1, L2, T1, T2)) >> ~FrequentTripModeTime(L1, L2, M1, T1, T2), weight: 1000; 
+   }
 
     /*
         TODO: Why arbitrary two locations deserializations...
@@ -196,6 +205,36 @@ public class InferMerge{
 	    else if(values[0] == values[2])
                 return values[1] <= values[3] ? 1 : 0;
 	    return 0;
+        }
+    }
+    class RankTransport implements ExternalFunction{
+        @Override
+        public int getArity(){
+            return 2;
+        }
+
+        @Override
+        public ConstantType[] getArgumentTypes(){
+            return [ConstantType.String, ConstantType.String].toArray();
+        }
+
+        @Override
+        public double getValue(ReadOnlyDatabase db, Constant... args){
+            String m1 = args[0].getValue();
+            String m2 = args[1].getValue();
+            double[] vals = [5, 5];
+            for(int i = 0; i < 2; i++){
+                if(args[i].getValue() == "automotive")
+                    vals[i] = 3;
+                if(args[i].getValue() == "cycling")
+                    vals[i] = 2;
+                if(args[i].getValue() == "walking")
+                    vals[i] = 0;
+                if(args[i].getValue() == "running")
+                    vals[i] = 1;
+            }
+            //log.info(vals)
+            return vals[0] < vals[1] ? 1.0 : 0.0;
         }
     }
 
@@ -325,14 +364,11 @@ public class InferMerge{
 
         Set frequentMode = Queries.getAllAtoms(obsDb, FrequentTripMode);
         Set frequentTimes = Queries.getAllAtoms(obsDb, FrequentTripTime);
+        log.info(frequentTimes.size() + " #FTT");
+        log.info(frequentMode.size() + " #FTM");
 
         Set<Term> startLocations = new HashSet<Term>();
         for (Atom a: frequentMode){
-            Term[] arguments = a.getArguments();
-            startLocations.add(arguments[0]);
-        }
-        for (Atom a: frequentTimes){
-            log.info("1");
             Term[] arguments = a.getArguments();
             startLocations.add(arguments[0]);
         }

@@ -138,17 +138,25 @@ public class InferTripInfo{
 
     private void defineRules(){
         log.info("Defining model rules");
-        model.add rule: ~FrequentTripMode(L1, L2, M), weight: 20;
-        model.add rule: ~FrequentTripTime(L1, L2, T1, T2), weight: 20;
+        model.add rule: ~FrequentTripMode(L1, L2, M), weight: 10;
+        model.add rule: ~FrequentTripTime(L1, L2, T1, T2), weight: 15;
 
         model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2)
-                         & StartTime(S1, T1) & EndTime(S2, T2) & Before(T1, T2) & SimilarTimes(T1, T2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 0.01;
+                         & StartTime(S1, T1) & EndTime(S2, T2) & Before(T1, T2) & SimilarTimes(T1, T2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 2;
         model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2) 
-                        & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(L1, L2, M), weight: 0.01;
+                        & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(L1, L2, M), weight: 5;
+
+        model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L1, L3) & StartLocation(S1, L1) & EndLocation(S1, L2) & StartLocation(S2, L1) & EndLocation(S2, L3)
+                         & StartTime(S1, T1) & StartTime(S2, T1)
+                         & EndTime(S1, T2) & EndTime(S2, T3) & SimilarTimes(T1, T2) & SimilarTimes(T1, T3) & Before(T2, T3)) >> FrequentTripTime(L1, L3, T1, T3), weight: 1;
+
+        model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S1, L2) & StartLocation(S2, L1) & EndLocation(S2, L2)
+                         & StartTime(S1, T1) & StartTime(S2, T1)
+                         & EndTime(S1, T2) & EndTime(S2, T3) & SimilarTimes(T1, T2) & SimilarTimes(T1, T3) & Before(T2, T3)) >> FrequentTripTime(L1, L2, T1, T2), weight: 1;
 
         //model.add rule: (FrequentTripMode(L1, L2, M) & FrequentTripMode(L2, L3, M) & FrequentTripTime(L1, L2, T1, T2) & FrequentTripTime(L2, L3, T2, T3)) >> FrequentTripTime(L1, L3, T1, T3), weight: 1;
 
-        model.add rule: ~FrequentTripTime(L1, L2, T, T), weight: 10;
+        model.add rule: ~FrequentTripTime(L1, L2, T, T), weight: 1;
         //model.add rule: (FrequentTripTime(L1, L2, T1, T2) & FrequentTripTime(L3, L4, T1, T2) & LongerTrip(L1, L2, L3, L4)) >> ~FrequentTripTime(L3, L4, T1, T2), weight: 1;
 
     }
@@ -176,9 +184,6 @@ public class InferTripInfo{
         return [x1, y1, x2, y2];
  
 		}
-
-
-
 
     class BeforeCompare implements ExternalFunction {
         @Override
@@ -262,6 +267,7 @@ public class InferTripInfo{
     private Set<Term> getFrequentTrips(Partition obsPartition){
         def obsDb = ds.getDatabase(obsPartition);
         Set frequentsSet = Queries.getAllAtoms(obsDb, FrequentTrip);
+        log.info(frequentsSet.size() + " frequent trips");
         Set<Term> frequents = new HashSet<Term>();
         for (Atom a: frequentsSet){
             Term[] arguments = a.getArguments();
@@ -294,6 +300,7 @@ public class InferTripInfo{
         Set<Term> modes = new HashSet<Term>();
         def obsDb = ds.getDatabase(obsPartition);
         Set modeSet = Queries.getAllAtoms(obsDb, Mode)
+        log.info(modeSet.size() + ' modes')
         for (Atom a: modeSet){
             Term[] arguments = a.getArguments();
             modes.add(arguments[1]);

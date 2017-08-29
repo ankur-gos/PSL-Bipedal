@@ -142,13 +142,14 @@ public class InferFrequentTrips{
         // Frequent Trips
         // for(int i = 0; i < this.cluster_count; i++){
         model.add rule: ~FrequentTrip(L1, L2), weight: 20;
+        model.add rule: ~FrequentTrip(L, L), weight: 1000;
         model.add rule: (Segment(S) & Anchor(L1) & Anchor(L2)
-                                & StartLocation(S, L1) & EndLocation(S, L2) & ~EqualLocations(L1, L2) ) >> FrequentTrip(L1, L2), weight: 5;
+                                & StartLocation(S, L1) & EndLocation(S, L2) & ~EqualLocations(L1, L2) ) >> FrequentTrip(L1, L2), weight: 3;
 
         model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2)
                                     & StartLocation(S1, L1) & EndLocation(S2, L2)
                                     & SegmentDay(S1, D) & SegmentDay(S2, D) 
-                                    & StartTime(S1, T1) & EndTime(S2, T2) & Before(T1, T2) & SimilarTimes(T1, T2) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 0.1;
+                                    & StartTime(S1, T1) & EndTime(S2, T2) & Before(T1, T2) & SimilarTimes(T1, T2) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 0.6;
         
         // model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L2, L3) & FrequentTrip(L3, L1) & Near(L1, L2) & Near(L2, L3) & ~Near(L1, L3) & LeftOf(L1, L3)) >> FrequentTrip(L1, L3), weight: 1.0
         // model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L2, L3) & FrequentTrip(L3, L1) & Near(L1, L2) & Near(L2, L3) & ~Near(L1, L3)) >> ~FrequentTrip(L2, L3), weight: 20.0

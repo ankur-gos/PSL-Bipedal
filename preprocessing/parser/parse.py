@@ -87,6 +87,10 @@ def get_mode(item):
 
 def get_time_string(item):
     val = str(int(round(item['minute'], -1))).zfill(2)
+    flag = False
+    if val == '60':
+        val = '00'
+        flag = True
     #val = '00'
     #if item['minute'] >= 8 or item['minute'] < 22:
     #    val = '15'
@@ -94,7 +98,8 @@ def get_time_string(item):
     #    val = '30'
     #if item['minute'] >= 38 or item['minute'] < 52:
     #    val = '45'
-    return str(item['hour']) + ':' + val
+    hour = str(item['hour'] + 1) if flag else str(item['hour'])
+    return hour + ':' + val
 '''
     if hour >= 3 and hour <= 10:
         return 'Morning'
