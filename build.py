@@ -7,11 +7,14 @@
 import config
 import preprocessing.parser.parse as ps
 import preprocessing.preprocessing as preprocesser
+import ClusterGPS.ClusterGPS as cluster
 import subprocess
 import output.filter_truth as ft
 import sys
+import os
 import argparse
 import ParseGeosheets as pg
+import shutil
 
 '''
     build_cleaned_clustered
@@ -23,7 +26,11 @@ def build_cleaned_clustered(create_geosheets):
     ps.write_obs(cleaned_obs, config.seg_path, config.start_loc_path, config.end_loc_path, config.start_time_path,
     config.end_time_path, config.mode_path, config.segment_day_path)
     # Cluster to coalesce locations
-    preprocesser.run_with_assignment(config.start_loc_path, config.end_loc_path)
+    cluster.run(0.1, [config.start_loc_path, config.end_loc_path], ['temp1', 'temp2'])
+    shutil.copy('temp1', config.start_loc_path)
+    shutil.copy('temp2', config.end_loc_path)
+    os.remove('temp1')
+    os.remove('temp2')
     build_cleaned_clustered_nopreprocess(create_geosheets)
 
 '''
