@@ -138,17 +138,25 @@ public class InferTripInfo{
 
     private void defineRules(){
         log.info("Defining model rules");
-        model.add rule: ~FrequentTripMode(L1, L2, M), weight: 20;
-        model.add rule: ~FrequentTripTime(L1, L2, T1, T2), weight: 20;
+        model.add rule: ~FrequentTripMode(L1, L2, M), weight: 10;
+        model.add rule: ~FrequentTripTime(L1, L2, T1, T2), weight: 15;
 
         model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2)
-                         & StartTime(S1, T1) & EndTime(S2, T2) & Before(T1, T2) & SimilarTimes(T1, T2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 0.1;
+                         & StartTime(S1, T1) & EndTime(S2, T2) & Before(T1, T2) & SimilarTimes(T1, T2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 2;
         model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2) 
-                        & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(L1, L2, M), weight: 0.1;
+                        & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(L1, L2, M), weight: 5;
 
-        model.add rule: (FrequentTripMode(L1, L2, M) & FrequentTripMode(L2, L3, M) & FrequentTripTime(L1, L2, T1, T2) & FrequentTripTime(L2, L3, T2, T3)) >> FrequentTripTime(L1, L3, T1, T3), weight: 1;
+        model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L1, L3) & StartLocation(S1, L1) & EndLocation(S1, L2) & StartLocation(S2, L1) & EndLocation(S2, L3)
+                         & StartTime(S1, T1) & StartTime(S2, T1)
+                         & EndTime(S1, T2) & EndTime(S2, T3) & SimilarTimes(T1, T2) & SimilarTimes(T1, T3) & Before(T2, T3)) >> FrequentTripTime(L1, L3, T1, T3), weight: 1;
 
-        model.add rule: ~FrequentTripTime(L1, L2, T, T), weight: 10;
+        model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S1, L2) & StartLocation(S2, L1) & EndLocation(S2, L2)
+                         & StartTime(S1, T1) & StartTime(S2, T1)
+                         & EndTime(S1, T2) & EndTime(S2, T3) & SimilarTimes(T1, T2) & SimilarTimes(T1, T3) & Before(T2, T3)) >> FrequentTripTime(L1, L2, T1, T2), weight: 1;
+
+        //model.add rule: (FrequentTripMode(L1, L2, M) & FrequentTripMode(L2, L3, M) & FrequentTripTime(L1, L2, T1, T2) & FrequentTripTime(L2, L3, T2, T3)) >> FrequentTripTime(L1, L3, T1, T3), weight: 1;
+
+        model.add rule: ~FrequentTripTime(L1, L2, T, T), weight: 1;
         //model.add rule: (FrequentTripTime(L1, L2, T1, T2) & FrequentTripTime(L3, L4, T1, T2) & LongerTrip(L1, L2, L3, L4)) >> ~FrequentTripTime(L3, L4, T1, T2), weight: 1;
 
     }
@@ -176,9 +184,6 @@ public class InferTripInfo{
         return [x1, y1, x2, y2];
  
 		}
-
-
-
 
     class BeforeCompare implements ExternalFunction {
         @Override
@@ -262,6 +267,7 @@ public class InferTripInfo{
     private Set<Term> getFrequentTrips(Partition obsPartition){
         def obsDb = ds.getDatabase(obsPartition);
         Set frequentsSet = Queries.getAllAtoms(obsDb, FrequentTrip);
+        log.info(frequentsSet.size() + " frequent trips");
         Set<Term> frequents = new HashSet<Term>();
         for (Atom a: frequentsSet){
             Term[] arguments = a.getArguments();
@@ -294,6 +300,7 @@ public class InferTripInfo{
         Set<Term> modes = new HashSet<Term>();
         def obsDb = ds.getDatabase(obsPartition);
         Set modeSet = Queries.getAllAtoms(obsDb, Mode)
+        log.info(modeSet.size() + ' modes')
         for (Atom a: modeSet){
             Term[] arguments = a.getArguments();
             modes.add(arguments[1]);
@@ -316,14 +323,29 @@ public class InferTripInfo{
     private void crossFrequentTripTimes(Partition obsPartition, Partition targetPartition){
         log.info("Started loading FrequentTripTimes into target partition");
         Map<Variable, Set<Term>> popMap = getTwoLocationPopMap(obsPartition);
-        Set<Term> times = getTimesSet(obsPartition);
-        log.info("# Times: " + times.size());
-        popMap.put(new Variable("Time1"), times);
-        popMap.put(new Variable("Time2"), times);
+        def obsDb = ds.getDatabase(obsPartition);
+        Set startTimeSet = Queries.getAllAtoms(obsDb, StartTime);
+        Set endTimeSet = Queries.getAllAtoms(obsDb, EndTime);
+        Set<Term> startTimes = new HashSet<Term>();
+        for (Atom a: startTimeSet){
+            Term[] arguments = a.getArguments();
+            startTimes.add(arguments[1]);
+        }
+
+        Set<Term> endTimes = new HashSet<Term>();
+        for (Atom a: endTimeSet){
+            Term[] arguments = a.getArguments();
+            endTimes.add(arguments[1]);
+        }
+        popMap.put(new Variable("Time1"), startTimes);
+        popMap.put(new Variable("Time2"), endTimes);
         def targetDb = ds.getDatabase(targetPartition);
         DatabasePopulator dbPop = new DatabasePopulator(targetDb);
         dbPop.populate((FrequentTripTime(Location1, Location2, Time1, Time2)).getFormula(), popMap);
+        Set ftt = Queries.getAllAtoms(targetDb, FrequentTripTime);
+        log.info("# FTT: " + ftt.size());
         targetDb.close();
+        obsDb.close();
         log.info("Finished loading FrequentTripTimes into target partition");
     }
 
@@ -377,11 +399,15 @@ public class InferTripInfo{
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "segment_days_obs.txt").toString());
 
         inserter = ds.getInserter(Anchor, obsPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "grounded_anchors.txt").toString());
+        InserterUtils.loadDelimitedDataTruth(inserter, Paths.get(config.dataPath, "grounded_anchors.txt").toString());
 
         inserter = ds.getInserter(FrequentTrip, obsPartition);
-        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "grounded_frequents.txt").toString());
+        InserterUtils.loadDelimitedDataTruth(inserter, Paths.get(config.dataPath, "grounded_frequents.txt").toString());
         // Run the cross functions to fill the targets partition
+        /*inserter = ds.getInserter(FrequentTripTime, targetsPartition);
+        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "fake_trips.txt").toString());
+        inserter = ds.getInserter(FrequentTripMode, targetsPartition);
+        InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "fake_modes.txt").toString());*/
         crossFrequentTripTimes(obsPartition, targetsPartition);
         crossFrequentTripModes(obsPartition, targetsPartition);
     }
@@ -410,10 +436,19 @@ public class InferTripInfo{
         PrintStream ps = new PrintStream(new File(Paths.get(config.outputPath, "frequent_times_infer.txt").toString()));
         AtomPrintStream aps = new DefaultAtomPrintStream(ps);
         Set atomSet = Queries.getAllAtoms(resultsDB, FrequentTripTime);
+        Set modeSet = Queries.getAllAtoms(resultsDB, FrequentTripMode);
         for (Atom a : atomSet) {
             aps.printAtom(a);
         }
 
+        PrintStream ps2 = new PrintStream(new File(Paths.get(config.outputPath, "frequent_modes_infer.txt").toString()));
+        AtomPrintStream aps2 = new DefaultAtomPrintStream(ps2);
+        for(Atom a: modeSet){
+            aps2.printAtom(a);
+        }
+
+        aps2.close();
+        ps2.close();
         aps.close();
         ps.close();
         resultsDB.close();

@@ -62,6 +62,14 @@ anchors_path = make_path('grounded_anchors.txt')
 # Grounded Frequent Trips
 frequents_path = make_path('grounded_frequents.txt')
 
+# Grounded FModes
+
+grounded_modes = make_path('grounded_frequent_modes.txt')
+
+grounded_times = make_path('grounded_frequent_times.txt')
+
+trip_modes_times_path = make_path('trip_modes_times.txt')
+
 num_anchors = 50
 
 num_frequent_trips = 50
@@ -77,6 +85,8 @@ write_anchors = make_path('write_anchors.txt')
 mode_geosheet_path = make_results_path('mode_pujara_geosheet.csv')
 
 time_geosheet_path = make_results_path('time_pujara_geosheet.csv')
+
+mode_time_geosheet_path = make_results_path('mode_time_geosheet.csv')
 
 # Frequent Trip Times
 

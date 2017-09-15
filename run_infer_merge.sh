@@ -1,7 +1,7 @@
 #!/bin/bash
 
 readonly CLASSPATH_FILE='classpath.out'
-readonly TARGET_CLASS='edu.ucsc.linqs.psl.example.infer_frequents.InferFrequentTrips'
+readonly TARGET_CLASS='edu.ucsc.linqs.psl.example.infer_merge.InferMerge'
 
 FETCH_COMMAND=''
 
