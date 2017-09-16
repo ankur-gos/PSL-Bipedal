@@ -53,3 +53,10 @@ trips_modes.txt
 trips_times.txt
 
 env
+*_processed
+*.csv
+location2_output.txt
+*_2017
+*_2016
+*.timeline
+modes_geosheets.dat
