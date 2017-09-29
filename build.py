@@ -7,7 +7,7 @@
 import config
 import preprocessing.parser.parse as ps
 import preprocessing.preprocessing as preprocesser
-import ClusterGPS.ClusterGPS as cluster
+import cluster.ClusterGPS as cluster
 import subprocess
 import output.filter_truth as ft
 import sys
@@ -15,22 +15,33 @@ import os
 import argparse
 import ParseGeosheets as pg
 import shutil
+import MarkovModel.model as mc
+
+def preprocess():
+    # Parser cleaned segments, write them to data files
+    cleaned_obs = ps.parse_cleaned_segments(config.data_path)
+    ps.write_obs(cleaned_obs, config.seg_path, config.start_loc_path, config.end_loc_path, config.start_time_path,
+    config.end_time_path, config.mode_path, config.segment_day_path)
+    # Cluster to coalesce locations
+    cluster.run(0.2, [config.start_loc_path, config.end_loc_path], ['temp1', 'temp2'])
+    shutil.copy('temp1', config.start_loc_path)
+    shutil.copy('temp2', config.end_loc_path)
+    os.remove('temp1')
+    os.remove('temp2')
+
+def build_markov_chains():
+    preprocess()
+    build_markov_chains_nopreprocess()
+
+def build_markov_chains_nopreprocess():
+    mc.model([config.start_loc_path, config.end_loc_path], config.markov_chains_results)
 
 '''
     build_cleaned_clustered
     Run entire pipeline, with preprocessing
 '''
 def build_cleaned_clustered(create_geosheets):
-    # Parser cleaned segments, write them to data files
-    cleaned_obs = ps.parse_cleaned_segments(config.data_path)
-    ps.write_obs(cleaned_obs, config.seg_path, config.start_loc_path, config.end_loc_path, config.start_time_path,
-    config.end_time_path, config.mode_path, config.segment_day_path)
-    # Cluster to coalesce locations
-    cluster.run(0.1, [config.start_loc_path, config.end_loc_path], ['temp1', 'temp2'])
-    shutil.copy('temp1', config.start_loc_path)
-    shutil.copy('temp2', config.end_loc_path)
-    os.remove('temp1')
-    os.remove('temp2')
+    preprocess()
     build_cleaned_clustered_nopreprocess(create_geosheets)
 
 '''
@@ -81,12 +92,18 @@ parser = argparse.ArgumentParser(description='Run inference to find out frequent
 parser.add_argument('-n', '--nopreprocess', action='store_true', help='Do not do preprocessing, just run inference (preprocessing often needs to be done only once).')
 parser.add_argument('-g', '--geosheets', action='store_true', help='Create a geosheets friendly anchor output')
 parser.add_argument('-f', '--filtermerge', action='store_true', help='Run the filtering and merging process after inferring trip information')
+parser.add_argument('-m', '--markov', action='store_true', help='Run the Markov chains baseline and output results')
 args = parser.parse_args()
 geosheets = args.geosheets
 if args.nopreprocess:
-    build_cleaned_clustered_nopreprocess(geosheets)
+    if args.markov:
+        build_markov_chains_nopreprocess()
+    else:
+        build_cleaned_clustered_nopreprocess(geosheets)
 elif args.filtermerge:
     filter_and_merge(geosheets)
+elif args.markov:
+    build_markov_chains()
 else:
     build_cleaned_clustered(geosheets)
 
