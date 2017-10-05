@@ -62,7 +62,7 @@ def get_location_obs_from_csegment(item):
     start_hour = item['data']['start_local_dt']
     end_hour = item['data']['end_local_dt']
     location.start_location = (start_loc[0], start_loc[1])
-    location.end_location = (end_loc[0], start_loc[1])
+    location.end_location = (end_loc[0], end_loc[1])
     location.start_time = get_time_string(start_hour)
     location.end_time = get_time_string(end_hour)
     location.mode = get_cleaned_mode(item)
@@ -74,7 +74,7 @@ def get_location_obs_from_csegment(item):
     Just going to use the metadata to determine the date of the data
 '''
 def get_day(item):
-    date_obj = item['metadata']['write_local_dt']
+    date_obj = item['data']['start_local_dt']
     month = date_obj['month']
     day = date_obj['day']
     year = date_obj['year']
