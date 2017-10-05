@@ -17,7 +17,7 @@ data_directory = './data'
 results_directory = './results'
 
 # Source data, change to point to data file
-data_path = 'jay_march_2016_2_march_2017.timeline' #'/Users/ankur/Coding/PSL-Bipedal/culler_processed'
+data_path = 'tom_processed'#'jay_march_2016_2_march_2017.timeline' #'/Users/ankur/Coding/PSL-Bipedal/culler_processed'
 
 def join_dir_path(directory, name):
     return '/'.join([directory, name])
@@ -87,6 +87,8 @@ mode_geosheet_path = make_results_path('mode_pujara_geosheet.csv')
 time_geosheet_path = make_results_path('time_pujara_geosheet.csv')
 
 mode_time_geosheet_path = make_results_path('mode_time_geosheet.csv')
+
+markov_chains_results = make_results_path('frequency_results.csv')
 
 # Frequent Trip Times
 

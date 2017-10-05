@@ -39,7 +39,8 @@ def compute_haversine_distance(location1, location2):
 
 def compute_marked_mean(locations):
     reduced = reduce(lambda x, y: (x[0] + y[0], x[1] + y[1]), locations)
-    return (reduced[0] / len(locations), reduced[1] / len(locations))
+    val = (round(reduced[0] / len(locations), 4), round(reduced[1] / len(locations), 4))
+    return val
 
 def cluster(radius, files, output_files):
     locations = load_data(files)
@@ -79,4 +80,5 @@ def run(radius, files, output_files):
                 lat_long = input_to_lat_long(line)
                 segment_num = line.split('\t', 1)[0]
                 wf.write('%s\t%f %f\n' % (segment_num, locations[lat_long][0], locations[lat_long][1]))
+            filenum += 1
                 
