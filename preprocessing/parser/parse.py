@@ -150,7 +150,7 @@ def write_cleaned_obs(observations, segment_path, start_loc_path, end_loc_path, 
             sf.write('%d\n' % ind)
             mode_f.write('%d\tcycling\n' % ind)
             start_lf.write('%d\t%0.3f %0.3f\n' % (ind, obs.start_location[0], obs.start_location[1]))
-            end_lf.write('%d\t%0.3f %0.3f\n' % (ind, obs.end_location[0], obs.end_locatio[1]))
+            end_lf.write('%d\t%0.3f %0.3f\n' % (ind, obs.end_location[0], obs.end_location[1]))
             start_tf.write('%d\t%s\n' % (ind, obs.start_time))
             end_tf.write('%d\t%s\n' % (ind, obs.end_time))
             day_f.write('%d\t\%s\n' % (ind, obs.segment_day))
@@ -172,8 +172,8 @@ def write_obs(observations, segment_path, start_loc_path, end_loc_path, start_ti
                 mode_f.write('%d\t%s\n' % (ind, obs.mode))
             if obs.segment_day is not None:
                 day_f.write('%d\t%s\n' % (ind, obs.segment_day))
-            start_lf.write('%d\t%0.3f %0.3f\n' % (ind, obs.start_location[0], obs.start_location[1]))
-            end_lf.write('%d\t%0.3f %0.3f\n' % (ind, obs.end_location[0], obs.end_location[1]))
+            start_lf.write('%d\t%0.4f %0.4f\n' % (ind, obs.start_location[0], obs.start_location[1]))
+            end_lf.write('%d\t%0.4f %0.4f\n' % (ind, obs.end_location[0], obs.end_location[1]))
             start_tf.write('%d\t%s\n' % (ind, obs.start_time))
             end_tf.write('%d\t%s\n' % (ind, obs.end_time))
 

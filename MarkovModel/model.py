@@ -53,7 +53,8 @@ def run(inputs):
     return counts, anchors
 
 def output(counts, output_file):
-    sorted_tuples = reversed(sorted(counts.items(), key=lambda x: x[1]))
+    sorted_tuples = sorted(counts.items(), key=lambda x: x[1])
+    sorted_tuples.reverse()
     with open(output_file, 'w+') as wf:
         for tup in counts:
             wf.write("%s\t%f\n" % (tup[0], tup[1]))
@@ -61,8 +62,10 @@ def output(counts, output_file):
 def model(files, outputfile):
     inputs = load_inputs(files)
     counts, anchors = run(inputs)
-    counts = reversed(sorted(counts.items(), key=lambda x: x[1]))
-    anchors = reversed(sorted(anchors.items(), key=lambda x: x[1]))
+    counts = sorted(counts.items(), key=lambda x: x[1])
+    anchors = sorted(anchors.items(), key=lambda x: x[1])
+    counts.reverse()
+    anchors.reverse()
     write_anchors(anchors, './results/anchor_results.csv')
     write_geosheet(counts, outputfile)
 
@@ -70,15 +73,31 @@ def write_anchors(anchors, output_file):
     i = 0
     with open(output_file, 'w+') as wf:
         for anchor in anchors:
-            wf.write('Location\tTruth\tMap\tAnchor Rating\tLabel\tOff Location\n')
-            wf.write('%s\t%f\t=GEO_MAP(A%d:B%d, \"MAP%d\")\n' % (anchor[0], anchor[1], i+1, i+2, i))
+            wf.write('Location\tTruth\tMap\tAnchor Rating\tLabel\n')
+            wf.write('%s\t%f\t=GEO_MAP(A%d:B%d, \"MAP%d\")\n' % (anchor[0], anchor[1], i+1, i+2, i+1))
+            if anchor[1] < 3:
+                break
             i += 2
+
 def write_geosheet(counts, output_file):
     i = 0
     with open(output_file, 'w+') as wf:
+        actual = 0
         for count in counts:
             locations = count[0]
             splits = locations.split(' ')
-            wf.write('Location\tType\tTruth\tMap\tTrip Rating\tFragment\tTrip Mode\tTrip Time\tOld\tOff Locations\n')
-            wf.write('%s,%s | %s,%s\tline\t%f\t=GEO_MAP(A%d:C%d, \"MAP%d\")\n' % (splits[1], splits[0], splits[3], splits[2], count[1], i+1, i+2, i))
-            i += 2
+            wf.write('Location\tType\tColor\tTruth\tMap\tTrip Rating\tTrip Mode\tEstimated Start Time\tEstimated End Time\tLabel\n')
+            wf.write('%s,%s | %s,%s\tline\tblack\t%f\t=GEO_MAP(A%d:C%d, \"MAP%d\")\n' % (splits[1], splits[0], splits[3], splits[2], count[1], i+1, i+4, i))
+            wf.write('%s,%s\tmarker\tred\n' % (splits[1], splits[0]))
+            wf.write('%s,%s\tmarker\tblue\n' % (splits[3], splits[2]))
+            if count[1] < 3:
+                break
+            actual += count[1]
+            i += 4
+        s = 0
+        for count in counts:
+            s += count[1]
+        print s
+        print actual
+
+        print float(actual) / float(s)
