@@ -17,7 +17,11 @@ data_directory = './data'
 results_directory = './results'
 
 # Source data, change to point to data file
-data_path = 'tom_processed'#'jay_march_2016_2_march_2017.timeline' #'/Users/ankur/Coding/PSL-Bipedal/culler_processed'
+data_path = 'tom_processed'#'shankari_processed'#'jay_march_2016_2_march_2017.timeline' #'/Users/ankur/Coding/PSL-Bipedal/culler_processed'
+
+anchor_truth_path = 'tom_places.tsv'
+
+trip_truth_path = 'tom_trips.tsv'
 
 def join_dir_path(directory, name):
     return '/'.join([directory, name])
@@ -31,9 +35,25 @@ def make_results_path(name):
 '''
     Initial Parsed data observations (Shouldn't need to change)
 '''
+
+anchor_ground_path = make_path('anchor_truth.txt')
+
+trip_ground_path = make_path('trip_truth.txt')
+
+mode_ground_path = make_path('mode_truth.txt')
+
+times_ground_path = make_path('times_truth.txt')
+
+dataset_path = make_path('dataset.tsv')
+
+mode_dataset_path = make_path('mode_dataset.tsv')
+
+time_dataset_path = make_path('time_dataset.tsv')
+
+anchor_dataset_path = make_path('anchor_dataset.tsv')
+
 # Segment observations path
 seg_path = make_path('segment_obs.txt')
-
 # Mode observations path
 mode_path = make_path('mode_obs.txt')
 

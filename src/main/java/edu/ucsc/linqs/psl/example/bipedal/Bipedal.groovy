@@ -6,36 +6,9 @@
 
 package edu.ucsc.linqs.psl.example.bipedal;
 
-//*import org.linqs.psl.application.inference.MPEInference;
-//import org.linqs.psl.application.learning.weight.em.HardEM;
-//import org.linqs.psl.config.ConfigBundle;
-//import org.linqs.psl.config.ConfigManager;
-//import org.linqs.psl.database.Database;
-//import org.linqs.psl.database.DatabasePopulator;
-//import org.linqs.psl.database.DataStore;
-//import org.linqs.psl.database.loading.Inserter;
-//import org.linqs.psl.database.Partition;
-//import org.linqs.psl.application.learning.weight.em.ExpectationMaximization;
-//import org.linqs.psl.database.rdbms.driver.H2DatabaseDriver;
-//import org.linqs.psl.database.rdbms.driver.H2DatabaseDriver.Type;
-//import org.linqs.psl.database.rdbms.RDBMSDataStore;
-//import org.linqs.psl.database.ReadOnlyDatabase;
-//import org.linqs.psl.evaluation.result.FullInferenceResult;
-//import org.linqs.psl.evaluation.resultui.printer.AtomPrintStream;
-//import org.linqs.psl.evaluation.resultui.printer.DefaultAtomPrintStream;
-//import org.linqs.psl.evaluation.statistics.ContinuousPredictionComparator;
-//import org.linqs.psl.evaluation.statistics.DiscretePredictionComparator;
-//import org.linqs.psl.evaluation.statistics.DiscretePredictionStatistics;
-//import org.linqs.psl.groovy.PSLModel;
-//import org.linqs.psl.model.argument.ConstantType;
-//import org.linqs.psl.model.atom.Atom;
-//import org.linqs.psl.model.predicate.StandardPredicate;
-//import org.linqs.psl.ui.loading.InserterUtils;
-//import org.linqs.psl.util.database.Queries;
 
 import org.linqs.psl.model.function.ExternalFunction;
 import org.linqs.psl.model.term.Constant;
-//import org.linqs.psl.model.argument.Term;
 import org.linqs.psl.model.term.Variable;
 import org.linqs.psl.model.term.Term;
 import org.linqs.psl.application.inference.MPEInference;
@@ -58,6 +31,9 @@ import org.linqs.psl.model.term.ConstantType;
 import org.linqs.psl.utils.dataloading.InserterUtils;
 import org.linqs.psl.utils.evaluation.printing.AtomPrintStream;
 import org.linqs.psl.utils.evaluation.printing.DefaultAtomPrintStream;
+import org.linqs.psl.utils.evaluation.statistics.ContinuousPredictionComparator;
+import org.linqs.psl.utils.evaluation.statistics.DiscretePredictionComparator;
+import org.linqs.psl.utils.evaluation.statistics.DiscretePredictionStatistics;
 import java.util.HashSet;
 import java.lang.Double;
 
@@ -131,20 +107,23 @@ public class Bipedal{
     private void defineRules(){
         log.info("Defining model rules");
         // Anchor locations
-        model.add rule: (Segment(S) & StartLocation(S, L) & StartTime(S, T)) >> AnchorTime(L, T),
-                  weight: 1;
-        model.add rule: (Segment(S) & EndLocation(S, L) & EndTime(S, T)) >> AnchorTime(L, T), weight: 1;
-        model.add rule: (Segment(S) & StartLocation(S, L) & Mode(S, M)) >> AnchorMode(L, M), weight: 1;
-        model.add rule: (Segment(S) & EndLocation(S, L) & Mode(S, M)) >> AnchorMode(L, M), weight: 1;
-        model.add rule: (AnchorMode(L, M)) >> Anchor(L), weight: 5;
-        model.add rule: (AnchorTime(L, T)) >> Anchor(L), weight: 5;
+        model.add rule: (StartLocation(S, L)) >> Anchor(L), weight: 1
+        model.add rule: (EndLocation(S, L)) >> Anchor(L), weight: 1
+        // model.add rule: (Segment(S) & StartLocation(S, L) & StartTime(S, T)) >> AnchorTime(L, T),
+        //           weight: 2;
+        // model.add rule: (Segment(S) & EndLocation(S, L) & EndTime(S, T)) >> AnchorTime(L, T), weight: 2;
+        // model.add rule: (Segment(S) & StartLocation(S, L) & Mode(S, M)) >> AnchorMode(L, M), weight: 2;
+        // model.add rule: (Segment(S) & EndLocation(S, L) & Mode(S, M)) >> AnchorMode(L, M), weight: 2;
+        // model.add rule: (AnchorMode(L, M)) >> Anchor(L), weight: 3;
+        // model.add rule: (AnchorTime(L, T)) >> Anchor(L), weight: 3;
 
-        model.add rule: (AnchorTime(L1, T) & AnchorTime(L2, T) & ~EqualLocations(L1, L2) & LeftOf(L1, L2)) >> ~Anchor(L2), weight: 1
-        model.add rule: ~Anchor(L1), weight: 8;
+        model.add rule: ~Anchor(L), weight: 10;
+        //model.add rule: ~AnchorMode(L, M), weght: 1;
+        //model.add rule: ~AnchorTime(L, T), weight: 1;
     }
 
     public double[] deserializeLocations(String s1, String s2){
-        String[] split1 = s1.split(" ");
+        String[] split1 = s1.split(" ")
         String[] split2 = s2.split(" ");
         double x1 = Double.parseDouble(split1[0]);
         double y1 = Double.parseDouble(split1[1]);
@@ -422,6 +401,9 @@ public class Bipedal{
         inserter = ds.getInserter(Mode, obsPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "mode_obs.txt").toString());
 
+        inserter = ds.getInserter(Anchor, truthPartition);
+        InserterUtils.loadDelimitedDataTruth(inserter, Paths.get(config.dataPath, "anchor_truth.txt").toString());
+
         // Run the cross functions to fill the targets partition
         crossLocationTime(obsPartition, targetsPartition);
         crossLocationMode(obsPartition, targetsPartition);
@@ -466,6 +448,27 @@ public class Bipedal{
      * Evaluates the results of inference versus expected truth values
      */
     private void evalResults(Partition targetsPartition, Partition truthPartition) {
+        Database resultsDB = ds.getDatabase(targetsPartition, [Anchor] as Set);
+		Database truthDB = ds.getDatabase(truthPartition, [Anchor] as Set);
+		DiscretePredictionComparator dpc = new DiscretePredictionComparator(resultsDB);
+		ContinuousPredictionComparator cpc = new ContinuousPredictionComparator(resultsDB);
+		dpc.setBaseline(truthDB);
+		//	 dpc.setThreshold(0.99);
+		cpc.setBaseline(truthDB);
+		DiscretePredictionStatistics stats = dpc.compare(Anchor);
+		double mse = cpc.compare(Anchor);
+		log.info("MSE: {}", mse);
+		log.info("Accuracy {}, Error {}",stats.getAccuracy(), stats.getError());
+		log.info(
+				"Positive Class: precision {}, recall {}",
+				stats.getPrecision(DiscretePredictionStatistics.BinaryClass.POSITIVE),
+				stats.getRecall(DiscretePredictionStatistics.BinaryClass.POSITIVE));
+		log.info("Negative Class Stats: precision {}, recall {}",
+				stats.getPrecision(DiscretePredictionStatistics.BinaryClass.NEGATIVE),
+				stats.getRecall(DiscretePredictionStatistics.BinaryClass.NEGATIVE));
+
+		resultsDB.close();
+		truthDB.close();
     }
 
     /**

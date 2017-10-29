@@ -58,6 +58,9 @@ import org.linqs.psl.model.term.ConstantType;
 import org.linqs.psl.utils.dataloading.InserterUtils;
 import org.linqs.psl.utils.evaluation.printing.AtomPrintStream;
 import org.linqs.psl.utils.evaluation.printing.DefaultAtomPrintStream;
+import org.linqs.psl.utils.evaluation.statistics.ContinuousPredictionComparator;
+import org.linqs.psl.utils.evaluation.statistics.DiscretePredictionComparator;
+import org.linqs.psl.utils.evaluation.statistics.DiscretePredictionStatistics;
 
 import java.util.HashSet;
 //import edu.umd.cs.psl.model.argument.Variable;
@@ -141,15 +144,15 @@ public class InferFrequentTrips{
         log.info("Defining model rules");
         // Frequent Trips
         // for(int i = 0; i < this.cluster_count; i++){
-        model.add rule: ~FrequentTrip(L1, L2), weight: 20;
+        model.add rule: ~FrequentTrip(L1, L2), weight: 5;
         model.add rule: ~FrequentTrip(L, L), weight: 1000;
         model.add rule: (Segment(S) & Anchor(L1) & Anchor(L2)
-                                & StartLocation(S, L1) & EndLocation(S, L2) & ~EqualLocations(L1, L2) ) >> FrequentTrip(L1, L2), weight: 3;
+                                & StartLocation(S, L1) & EndLocation(S, L2) & ~EqualLocations(L1, L2) ) >> FrequentTrip(L1, L2), weight: 5;
 
         model.add rule: (Segment(S1) & Segment(S2) & Anchor(L1) & Anchor(L2)
                                     & StartLocation(S1, L1) & EndLocation(S2, L2)
                                     & SegmentDay(S1, D) & SegmentDay(S2, D) 
-                                    & StartTime(S1, T1) & EndTime(S2, T2) & Before(T1, T2) & SimilarTimes(T1, T2) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 0.6;
+                                    & StartTime(S1, T1) & EndTime(S2, T2) & Before(T1, T2) & SimilarTimes(T1, T2) & ~EqualLocations(L1, L2)) >> FrequentTrip(L1, L2), weight: 1;
         
         // model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L2, L3) & FrequentTrip(L3, L1) & Near(L1, L2) & Near(L2, L3) & ~Near(L1, L3) & LeftOf(L1, L3)) >> FrequentTrip(L1, L3), weight: 1.0
         // model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L2, L3) & FrequentTrip(L3, L1) & Near(L1, L2) & Near(L2, L3) & ~Near(L1, L3)) >> ~FrequentTrip(L2, L3), weight: 20.0
@@ -198,12 +201,18 @@ public class InferFrequentTrips{
         public double getValue(ReadOnlyDatabase db, Constant... args){
             String s1 = args[0].getValue();
             String s2 = args[1].getValue();
+            def order = ["Morning", "Afternoon", "Evening", "Night"]
+            def index = order.findIndexOf{it == s1}
+            def index2 = order.findIndexOf{it == s2}
+            return index <= index2 ? 1 : 0
+            /*
             double[] values = deserializeTimes(s1, s2);
 						if(values[0] < values[2])
 							return 1;
 						else if(values[0] == values[2])
 							return values[1] <= values[3] ? 1 : 0;
 						return 0;
+            */
         }
     }
 
@@ -223,11 +232,18 @@ public class InferFrequentTrips{
         public double getValue(ReadOnlyDatabase db, Constant... args){
             String s1 = args[0].getValue();
             String s2 = args[1].getValue();
+            def order = ["Morning", "Afternoon", "Evening", "Night"]
+            def index = order.findIndexOf{it == s1}
+            def index2 = order.findIndexOf{it == s2}
+            def val = (index - index2);
+            return val <= 1 ? 1 : 0;
+            /*
             double[] values = deserializeTimes(s1, s2);
 						double tdist = (values[0] - values[2]).abs();
 						if(tdist <= 1)
 							return 1;
             return 1 / tdist;
+            */
         }
     }
 
@@ -476,6 +492,9 @@ public class InferFrequentTrips{
         inserter = ds.getInserter(Anchor, obsPartition);
         InserterUtils.loadDelimitedDataTruth(inserter, Paths.get(config.dataPath, "grounded_anchors.txt").toString());
 
+        inserter = ds.getInserter(FrequentTrip, truthPartition);
+        InserterUtils.loadDelimitedDataTruth(inserter, Paths.get(config.dataPath, "trip_truth.txt").toString());
+
         // Run the cross functions to fill the targets partition
         //crossFrequentTripTimes(obsPartition, targetsPartition);
         crossFrequentTrips(obsPartition, targetsPartition);
@@ -519,6 +538,27 @@ public class InferFrequentTrips{
      * Evaluates the results of inference versus expected truth values
      */
     private void evalResults(Partition targetsPartition, Partition truthPartition) {
+        Database resultsDB = ds.getDatabase(targetsPartition, [FrequentTrip] as Set);
+		Database truthDB = ds.getDatabase(truthPartition, [FrequentTrip] as Set);
+		DiscretePredictionComparator dpc = new DiscretePredictionComparator(resultsDB);
+		ContinuousPredictionComparator cpc = new ContinuousPredictionComparator(resultsDB);
+		dpc.setBaseline(truthDB);
+		//	 dpc.setThreshold(0.99);
+		cpc.setBaseline(truthDB);
+		DiscretePredictionStatistics stats = dpc.compare(FrequentTrip);
+		double mse = cpc.compare(FrequentTrip);
+		log.info("MSE: {}", mse);
+		log.info("Accuracy {}, Error {}",stats.getAccuracy(), stats.getError());
+		log.info(
+				"Positive Class: precision {}, recall {}",
+				stats.getPrecision(DiscretePredictionStatistics.BinaryClass.POSITIVE),
+				stats.getRecall(DiscretePredictionStatistics.BinaryClass.POSITIVE));
+		log.info("Negative Class Stats: precision {}, recall {}",
+				stats.getPrecision(DiscretePredictionStatistics.BinaryClass.NEGATIVE),
+				stats.getRecall(DiscretePredictionStatistics.BinaryClass.NEGATIVE));
+
+		resultsDB.close();
+		truthDB.close();
     }
 
     /**

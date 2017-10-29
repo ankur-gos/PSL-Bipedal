@@ -58,6 +58,9 @@ import org.linqs.psl.model.term.ConstantType;
 import org.linqs.psl.utils.dataloading.InserterUtils;
 import org.linqs.psl.utils.evaluation.printing.AtomPrintStream;
 import org.linqs.psl.utils.evaluation.printing.DefaultAtomPrintStream;
+import org.linqs.psl.utils.evaluation.statistics.ContinuousPredictionComparator;
+import org.linqs.psl.utils.evaluation.statistics.DiscretePredictionComparator;
+import org.linqs.psl.utils.evaluation.statistics.DiscretePredictionStatistics;
 
 import java.util.HashSet;
 //import edu.umd.cs.psl.model.argument.Variable;
@@ -138,25 +141,31 @@ public class InferTripInfo{
 
     private void defineRules(){
         log.info("Defining model rules");
-        model.add rule: ~FrequentTripMode(L1, L2, M), weight: 10;
-        model.add rule: ~FrequentTripTime(L1, L2, T1, T2), weight: 15;
+        model.add rule: ~FrequentTripMode(L1, L2, M), weight: 15;
+        model.add rule: ~FrequentTripTime(L1, L2, T1, T2), weight: 13;
+
+        model.add rule: (FrequentTrip(L1, L2) & StartLocation(S, L1) & EndLocation(S, L2) & StartTime(S, T1)
+                            & EndTime(S, T2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 3;
+
+        model.add rule: (FrequentTrip(L1, L2) & StartLocation(S, L1) & EndLocation(S, L2) 
+                            & Mode(S, M)) >> FrequentTripMode(L1, L2, M), weight: 3;
 
         model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2)
-                         & StartTime(S1, T1) & EndTime(S2, T2) & Before(T1, T2) & SimilarTimes(T1, T2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 2;
+                         & StartTime(S1, T1) & EndTime(S2, T2) & Before(T1, T2) & SimilarTimes(T1, T2)) >> FrequentTripTime(L1, L2, T1, T2), weight: 0.01;
         model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S2, L2) 
-                        & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(L1, L2, M), weight: 5;
+                        & Mode(S1, M) & Mode(S2, M)) >> FrequentTripMode(L1, L2, M), weight: 0.01;
 
-        model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L1, L3) & StartLocation(S1, L1) & EndLocation(S1, L2) & StartLocation(S2, L1) & EndLocation(S2, L3)
-                         & StartTime(S1, T1) & StartTime(S2, T1)
-                         & EndTime(S1, T2) & EndTime(S2, T3) & SimilarTimes(T1, T2) & SimilarTimes(T1, T3) & Before(T2, T3)) >> FrequentTripTime(L1, L3, T1, T3), weight: 1;
+        //model.add rule: (FrequentTrip(L1, L2) & FrequentTrip(L1, L3) & StartLocation(S1, L1) & EndLocation(S1, L2) & StartLocation(S2, L1) & EndLocation(S2, L3)
+        //                 & StartTime(S1, T1) & StartTime(S2, T1)
+        //                 & EndTime(S1, T2) & EndTime(S2, T3) & SimilarTimes(T1, T2) & SimilarTimes(T1, T3) & Before(T2, T3)) >> FrequentTripTime(L1, L3, T1, T3), weight: 1;
 
-        model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S1, L2) & StartLocation(S2, L1) & EndLocation(S2, L2)
-                         & StartTime(S1, T1) & StartTime(S2, T1)
-                         & EndTime(S1, T2) & EndTime(S2, T3) & SimilarTimes(T1, T2) & SimilarTimes(T1, T3) & Before(T2, T3)) >> FrequentTripTime(L1, L2, T1, T2), weight: 1;
+        //model.add rule: (FrequentTrip(L1, L2) & StartLocation(S1, L1) & EndLocation(S1, L2) & StartLocation(S2, L1) & EndLocation(S2, L2)
+        //                 & StartTime(S1, T1) & StartTime(S2, T1)
+        //                 & EndTime(S1, T2) & EndTime(S2, T3) & SimilarTimes(T1, T2) & SimilarTimes(T1, T3) & Before(T2, T3)) >> FrequentTripTime(L1, L2, T1, T2), weight: 1;
 
         //model.add rule: (FrequentTripMode(L1, L2, M) & FrequentTripMode(L2, L3, M) & FrequentTripTime(L1, L2, T1, T2) & FrequentTripTime(L2, L3, T2, T3)) >> FrequentTripTime(L1, L3, T1, T3), weight: 1;
 
-        model.add rule: ~FrequentTripTime(L1, L2, T, T), weight: 1;
+        //model.add rule: ~FrequentTripTime(L1, L2, T, T), weight: 1;
         //model.add rule: (FrequentTripTime(L1, L2, T1, T2) & FrequentTripTime(L3, L4, T1, T2) & LongerTrip(L1, L2, L3, L4)) >> ~FrequentTripTime(L3, L4, T1, T2), weight: 1;
 
     }
@@ -200,12 +209,18 @@ public class InferTripInfo{
         public double getValue(ReadOnlyDatabase db, Constant... args){
             String s1 = args[0].getValue();
             String s2 = args[1].getValue();
+            def order = ["Morning", "Afternoon", "Evening", "Night"]
+            def index = order.findIndexOf{it == s1}
+            def index2 = order.findIndexOf{it == s2}
+            return index <= index2 ? 1 : 0
+            /*
             double[] values = deserializeTimes(s1, s2);
-	    if(values[0] < values[2])
-		return 1;
-	    else if(values[0] == values[2])
+            if(values[0] < values[2])
+                return 1;
+            else if(values[0] == values[2])
                 return values[1] <= values[3] ? 1 : 0;
-	    return 0;
+            return 0;
+            */
         }
     }
 
@@ -225,11 +240,18 @@ public class InferTripInfo{
         public double getValue(ReadOnlyDatabase db, Constant... args){
             String s1 = args[0].getValue();
             String s2 = args[1].getValue();
+            def order = ["Morning", "Afternoon", "Evening", "Night"]
+            def index = order.findIndexOf{it == s1}
+            def index2 = order.findIndexOf{it == s2}
+            def val = (index - index2);
+            return val <= 1 ? 1 : 0;
+            /*
             double[] values = deserializeTimes(s1, s2);
 						double tdist = (values[0] - values[2]).abs();
 						if(tdist <= 1)
 							return 1;
             return 1 / tdist;
+            */
         }
     }
 
@@ -403,6 +425,14 @@ public class InferTripInfo{
 
         inserter = ds.getInserter(FrequentTrip, obsPartition);
         InserterUtils.loadDelimitedDataTruth(inserter, Paths.get(config.dataPath, "grounded_frequents.txt").toString());
+
+        inserter = ds.getInserter(FrequentTripTime, truthPartition);
+        InserterUtils.loadDelimitedDataTruth(inserter, Paths.get(config.dataPath, "times_truth.txt").toString());
+
+        inserter = ds.getInserter(FrequentTripMode, truthPartition);
+        InserterUtils.loadDelimitedDataTruth(inserter, Paths.get(config.dataPath, "mode_truth.txt").toString());
+
+        
         // Run the cross functions to fill the targets partition
         /*inserter = ds.getInserter(FrequentTripTime, targetsPartition);
         InserterUtils.loadDelimitedData(inserter, Paths.get(config.dataPath, "fake_trips.txt").toString());
@@ -459,6 +489,54 @@ public class InferTripInfo{
      * Evaluates the results of inference versus expected truth values
      */
     private void evalResults(Partition targetsPartition, Partition truthPartition) {
+        Database resultsDB = ds.getDatabase(targetsPartition, [FrequentTripTime] as Set);
+		Database truthDB = ds.getDatabase(truthPartition, [FrequentTripTime] as Set);
+		DiscretePredictionComparator dpc = new DiscretePredictionComparator(resultsDB);
+		ContinuousPredictionComparator cpc = new ContinuousPredictionComparator(resultsDB);
+		dpc.setBaseline(truthDB);
+		//	 dpc.setThreshold(0.99);
+		cpc.setBaseline(truthDB);
+		DiscretePredictionStatistics stats = dpc.compare(FrequentTripTime);
+		double mse = cpc.compare(FrequentTripTime);
+		log.info("MSE: {}", mse);
+		log.info("Accuracy {}, Error {}",stats.getAccuracy(), stats.getError());
+		log.info(
+				"Positive Class: precision {}, recall {}",
+				stats.getPrecision(DiscretePredictionStatistics.BinaryClass.POSITIVE),
+				stats.getRecall(DiscretePredictionStatistics.BinaryClass.POSITIVE));
+		log.info("Negative Class Stats: precision {}, recall {}",
+				stats.getPrecision(DiscretePredictionStatistics.BinaryClass.NEGATIVE),
+				stats.getRecall(DiscretePredictionStatistics.BinaryClass.NEGATIVE));
+
+		resultsDB.close();
+		truthDB.close();
+    }
+
+    /**
+     * Evaluates the results of inference versus expected truth values
+     */
+    private void evalResults2(Partition targetsPartition, Partition truthPartition) {
+        Database resultsDB = ds.getDatabase(targetsPartition, [FrequentTripMode] as Set);
+		Database truthDB = ds.getDatabase(truthPartition, [FrequentTripMode] as Set);
+		DiscretePredictionComparator dpc = new DiscretePredictionComparator(resultsDB);
+		ContinuousPredictionComparator cpc = new ContinuousPredictionComparator(resultsDB);
+		dpc.setBaseline(truthDB);
+		//	 dpc.setThreshold(0.99);
+		cpc.setBaseline(truthDB);
+		DiscretePredictionStatistics stats = dpc.compare(FrequentTripMode);
+		double mse = cpc.compare(FrequentTripMode);
+		log.info("MSE: {}", mse);
+		log.info("Accuracy {}, Error {}",stats.getAccuracy(), stats.getError());
+		log.info(
+				"Positive Class: precision {}, recall {}",
+				stats.getPrecision(DiscretePredictionStatistics.BinaryClass.POSITIVE),
+				stats.getRecall(DiscretePredictionStatistics.BinaryClass.POSITIVE));
+		log.info("Negative Class Stats: precision {}, recall {}",
+				stats.getPrecision(DiscretePredictionStatistics.BinaryClass.NEGATIVE),
+				stats.getRecall(DiscretePredictionStatistics.BinaryClass.NEGATIVE));
+
+		resultsDB.close();
+		truthDB.close();
     }
 
     /**
@@ -478,7 +556,8 @@ public class InferTripInfo{
         loadData(obsPartition, targetsPartition, truthPartition);
         runInference(obsPartition, targetsPartition);
         writeOutput(targetsPartition);
-        //evalResults(targetsPartition, truthPartition);
+        evalResults(targetsPartition, truthPartition);
+        evalResults2(targetsPartition, truthPartition);
 
         ds.close();
     }

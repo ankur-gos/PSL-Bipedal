@@ -10,8 +10,8 @@ def filter_top_n(filename, write_file, n):
     with open(write_file, 'w+') as write_f:
         lines = filter_lines(filename)
         for line in lines:
-            if line[1] < 0.8:
-                break
+            # if line[1] < 0.2:
+            #      break
             anchor = re.search(r'.*\(\'(.*)\'.*', line[0], re.M|re.I)
             if anchor is not None:
                 write_f.write('%s\t%f\n' % (anchor.group(1), line[1]))
@@ -31,7 +31,7 @@ def filter_top_n_frequents(filename, write_file, n):
     with open(write_file, 'w+') as write_f:
         lines = filter_lines(filename)
         for line in lines:
-            if line[1] < 0.9:
+            if line[1] < 0.75:
                 break
             frequent_trip = re.search(r'.*\'(.*)\', \'(.*)\'.*', line[0], re.M|re.I)
             if frequent_trip is not None:
@@ -41,7 +41,7 @@ def filter_top_n_modes_trips(times_filename, modes_filename,  times_wf, modes_wf
     with open(write_file, 'w+') as write_f:
         lines = filter_lines(filename)
         for line in lines:
-            if line[1] < 0.70:
+            if line[1] < 0.2:
                 break
             frequent_trip = re.search(r'.*\'(.*)\', \'(.*)\'.*', line[0], re.M|re.I)
             if frequent_trip is not None:

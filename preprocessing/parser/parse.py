@@ -86,7 +86,8 @@ def get_mode(item):
             return mode
 
 def get_time_string(item):
-    val = str(int(round(item['minute'], -1))).zfill(2)
+    '''
+    val = str(int(60 * round(float(item['minute'])/60))).zfill(2)
     flag = False
     if val == '60':
         val = '00'
@@ -101,6 +102,7 @@ def get_time_string(item):
     hour = str(item['hour'] + 1) if flag else str(item['hour'])
     return hour + ':' + val
 '''
+    hour = item['hour']
     if hour >= 3 and hour <= 10:
         return 'Morning'
     if hour > 10 and hour < 16:
@@ -108,7 +110,6 @@ def get_time_string(item):
     if hour >= 16 and hour < 20:
         return 'Evening'
     return 'Night'
-'''
 
 def get_time(item):
     time = item['data']['local_dt']['hour']
@@ -164,18 +165,32 @@ def parse_cleaned_segments(filename):
         return obs
 
 
-def write_obs(observations, segment_path, start_loc_path, end_loc_path, start_time_path, end_time_path, mode_path, segment_day_path):
-    with open(segment_path, 'w+') as sf, open(mode_path, 'w+') as mode_f, open(start_loc_path, 'w+') as start_lf, open(end_loc_path,'w+') as end_lf, open(start_time_path, 'w+') as start_tf, open(end_time_path, 'w+') as end_tf, open(segment_day_path, 'w+') as day_f:
+def write_obs(observations, segment_path, start_loc_path, end_loc_path, start_time_path, end_time_path, mode_path, segment_day_path, dataset_path, anchor_dataset_path):
+    with open(segment_path, 'w+') as sf, open(mode_path, 'w+') as mode_f, open(start_loc_path, 'w+') as start_lf, open(end_loc_path,'w+') as end_lf, open(start_time_path, 'w+') as start_tf, open(end_time_path, 'w+') as end_tf, open(segment_day_path, 'w+') as day_f, open(dataset_path, 'w+') as ds_f, open(anchor_dataset_path, 'w+') as ads_f:
+        #ads_f.write('Location\n')
+        #ds_f.write('Mode\tDay\tStart Location\tEnd Location\tStart Time\tEnd Time\n')
         for ind, obs in enumerate(observations):
             sf.write('%d\n' % ind)
             if obs.mode is not None:
                 mode_f.write('%d\t%s\n' % (ind, obs.mode))
+                #ds_f.write('%s\t' % obs.mode)
+            #else:
+                #ds_f.write('nan\t')
             if obs.segment_day is not None:
                 day_f.write('%d\t%s\n' % (ind, obs.segment_day))
+                #ds_f.write('%s\t' % obs.segment_day)
+            #else:
+                #ds_f.write('nan\t')
             start_lf.write('%d\t%0.4f %0.4f\n' % (ind, obs.start_location[0], obs.start_location[1]))
+            #ds_f.write('%0.4f %0.4f\t' % (obs.start_location[0], obs.start_location[1]))
+            #ads_f.write('%0.4f %0.4f\n' % (obs.start_location[0], obs.start_location[1]))
             end_lf.write('%d\t%0.4f %0.4f\n' % (ind, obs.end_location[0], obs.end_location[1]))
+            #ds_f.write('%0.4f %0.4f\t' % (obs.end_location[0], obs.end_location[1]))
+            #ads_f.write('%0.4f %0.4f\n' % (obs.end_location[0], obs.end_location[1]))
             start_tf.write('%d\t%s\n' % (ind, obs.start_time))
+            #ds_f.write('%s\t' % obs.start_time)
             end_tf.write('%d\t%s\n' % (ind, obs.end_time))
+            #ds_f.write('%s\n' % obs.end_time)
 
 
 # obs = parse_segments(data_path)
